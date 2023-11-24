@@ -18,7 +18,7 @@ It behaves exactly as [EventEmitter2](https://github.com/EventEmitter2/EventEmit
 
 ```js
 import { EventEmitter } from '@universal-packages/event-emitter'
-import { startMEasurement() } from '@universal-packages/time-measurer'
+import { startMEasurement } from '@universal-packages/time-measurer'
 
 const measurer = startMeasurement()
 
