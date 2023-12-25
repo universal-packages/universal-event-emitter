@@ -14,7 +14,7 @@ npm install @universal-packages/event-emitter
 
 ## EventEmitter
 
-It behaves exactly as [EventEmitter2](https://github.com/EventEmitter2/EventEmitter2) but with wildcards enabled by default and emit to only emit on object following events convention for universal-packages.
+It behaves exactly as [EventEmitter2](https://github.com/EventEmitter2/EventEmitter2) but with wildcards enabled by default and following events convention for universal-packages.
 
 ```js
 import { EventEmitter } from '@universal-packages/event-emitter'
