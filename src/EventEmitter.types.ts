@@ -10,19 +10,19 @@ export interface EventIn {
   payload?: Record<string, any>
 }
 
-export interface EventOut extends EventIn {
+export interface EmittedEvent extends EventIn {
   event: string
 }
 
 export interface ListenerFn {
-  (event?: EventOut): void
+  (event?: EmittedEvent): void
 }
 export interface EventAndListener {
   (eventName: string | string[], event?: EventIn): void
 }
 
 export interface WaitForFilter {
-  (event?: EventOut): boolean
+  (event?: EmittedEvent): boolean
 }
 
 export interface WaitForOptions {
@@ -40,8 +40,8 @@ export interface ListenToOptions {
 }
 
 export interface GeneralEventEmitter {
-  addEventListener(event: event, handler: ListenerFn): this
-  removeEventListener(event: event, handler: ListenerFn): this
+  addEventListener?(event: event, handler: ListenerFn): this
+  removeEventListener?(event: event, handler: ListenerFn): this
   addListener?(event: event, handler: ListenerFn): this
   removeListener?(event: event, handler: ListenerFn): this
   on?(event: event, handler: ListenerFn): this
