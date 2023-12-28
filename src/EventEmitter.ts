@@ -1,6 +1,6 @@
-import EE2, { CancelablePromise, ConstructorOptions, GeneralEventEmitter, OnOptions, OnceOptions, event, eventNS } from 'eventemitter2'
+import EE2, { CancelablePromise, ConstructorOptions, OnOptions, OnceOptions, event, eventNS } from 'eventemitter2'
 
-import { EventAndListener, EventIn, ListenToOptions, Listener, ListenerFn, WaitForFilter, WaitForOptions } from './EventEmitter.types'
+import { EventAndListener, EventIn, GeneralEventEmitter, ListenToOptions, Listener, ListenerFn, WaitForFilter, WaitForOptions } from './EventEmitter.types'
 
 export default class EventEmitter extends EE2 {
   public static defaultMaxListeners: number
@@ -104,11 +104,11 @@ export default class EventEmitter extends EE2 {
   public listenTo(target: GeneralEventEmitter, events: event[], options?: ListenToOptions): this
   public listenTo(target: GeneralEventEmitter, events: Object, options?: ListenToOptions): this
   public listenTo(target: GeneralEventEmitter, events: event | eventNS | event[] | Object, options?: ListenToOptions): this {
-    return super.listenTo(target, events, options)
+    return super.listenTo(target as any, events, options)
   }
 
   public stopListeningTo(target?: GeneralEventEmitter, event?: event | eventNS): Boolean {
-    return super.stopListeningTo(target, event)
+    return super.stopListeningTo(target as any, event)
   }
 
   public hasListeners(event?: String): Boolean {
