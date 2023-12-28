@@ -116,10 +116,6 @@ export default class EventEmitter extends EE2 {
   }
 
   public static once(emitter: EventEmitter, event: event | eventNS, options?: OnceOptions): CancelablePromise<any[]> {
-    return this.once(emitter, event, options)
-  }
-
-  public static onAny(emitter: EventEmitter, listener: EventAndListener): EventEmitter {
-    return this.onAny(emitter, listener)
+    return super.once(emitter, event, options)
   }
 }
