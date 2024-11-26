@@ -16,7 +16,7 @@
     "update-universal-dependencies": "umaintenance update-universal-dependencies"
   },
   "dependencies": {
-    "@universal-packages/time-measurer": "^1.4.10",
+    "@universal-packages/time-measurer": "^1.5.0",
     "eventemitter2": "^6.4.9"
   },
   "devDependencies": {
