@@ -1,28 +1,29 @@
 import { Measurement } from '@universal-packages/time-measurer'
 import { event, eventNS } from 'eventemitter2'
 
-import EventEmitter from './EventEmitter'
+import { EventEmitter } from './EventEmitter'
 
-export interface EventIn {
+export interface EventIn<TPayload = any> {
   error?: Error
   measurement?: Measurement
   message?: string
-  payload?: Record<string, any>
+  payload?: TPayload
 }
 
-export interface EmittedEvent extends EventIn {
+export interface EmittedEvent<TPayload = any> extends EventIn<TPayload> {
   event: string
 }
 
-export interface ListenerFn {
-  (event?: EmittedEvent): void
-}
-export interface EventAndListener {
-  (eventName: string | string[], event?: EventIn): void
+export interface ListenerFn<TPayload = any> {
+  (event?: EmittedEvent<TPayload>): void
 }
 
-export interface WaitForFilter {
-  (event?: EmittedEvent): boolean
+export interface EventAndListener<TPayload = any> {
+  (eventName: string | string[], event?: EventIn<TPayload>): void
+}
+
+export interface WaitForFilter<TPayload = any> {
+  (event?: EmittedEvent<TPayload>): boolean
 }
 
 export interface WaitForOptions {
@@ -33,24 +34,30 @@ export interface WaitForOptions {
   overload: boolean
 }
 
-export interface ListenToOptions {
-  on?: { (event: event | eventNS, handler: ListenerFn): void }
-  off?: { (event: event | eventNS, handler: ListenerFn): void }
+export interface ListenToOptions<TPayload = any> {
+  on?: { (event: event | eventNS, handler: ListenerFn<TPayload>): void }
+  off?: { (event: event | eventNS, handler: ListenerFn<TPayload>): void }
   reducers: Function | Object
 }
 
-export interface GeneralEventEmitter {
-  addEventListener?(event: event, handler: ListenerFn): this
-  removeEventListener?(event: event, handler: ListenerFn): this
-  addListener?(event: event, handler: ListenerFn): this
-  removeListener?(event: event, handler: ListenerFn): this
-  on?(event: event, handler: ListenerFn): this
-  off?(event: event, handler: ListenerFn): this
+export interface GeneralEventEmitter<TPayload = any> {
+  addEventListener?(event: event, handler: ListenerFn<TPayload>): this
+  removeEventListener?(event: event, handler: ListenerFn<TPayload>): this
+  addListener?(event: event, handler: ListenerFn<TPayload>): this
+  removeListener?(event: event, handler: ListenerFn<TPayload>): this
+  on?(event: event, handler: ListenerFn<TPayload>): this
+  off?(event: event, handler: ListenerFn<TPayload>): this
 }
 
-export interface Listener {
+export interface Listener<TPayload = any> {
   emitter: EventEmitter
   event: event | eventNS
-  listener: ListenerFn
+  listener: ListenerFn<TPayload>
   off(): this
 }
+
+// Event map type for defining event names and their payload types
+export type EventMap = Record<string, any>
+
+// Default event map for backward compatibility
+export type DefaultEventMap = Record<string, any>

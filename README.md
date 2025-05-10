@@ -1,4 +1,4 @@
-# Buffer Dispatcher
+# Event Emitter
 
 [![npm version](https://badge.fury.io/js/@universal-packages%2Fevent-emitter.svg)](https://www.npmjs.com/package/@universal-packages/event-emitter)
 [![Testing](https://github.com/universal-packages/universal-event-emitter/actions/workflows/testing.yml/badge.svg)](https://github.com/universal-packages/universal-event-emitter/actions/workflows/testing.yml)
