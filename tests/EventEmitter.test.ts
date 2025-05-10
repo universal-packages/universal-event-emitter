@@ -66,7 +66,7 @@ describe('EventEmitter TypeScript Support', (): void => {
     emitter.on('dynamic:event', dynamicListener)
 
     // Wildcard
-    emitter.on('*', wildcardListener)
+    emitter.on('*:*', wildcardListener)
 
     // Emit both types of events
     emitter.emit('typed:event', { payload: { data: 'test' } })
