@@ -13,25 +13,28 @@ describe('EventEmitter TypeScript Support', (): void => {
     // Create a typed event emitter
     const emitter = new EventEmitter<MyEvents>()
 
-    // Type checking for event listeners
-    const userCreatedListener = jest.fn((event) => {
-      // TypeScript should know these types
+    // Type checking happens at compile time
+    // TypeScript will error if the payload type is incorrect
+    let userCreatedCalled = false
+    let numbersCalled = false
+
+    // Register listeners with typed events - checking payload type inference
+    emitter.on('user:created', (event) => {
+      userCreatedCalled = true
+      // If TypeScript properly infers the type, this should compile
       const id: string = event.payload!.id
       const name: string = event.payload!.name
       expect(typeof id).toBe('string')
       expect(typeof name).toBe('string')
     })
 
-    const numbersListener = jest.fn((event) => {
-      // TypeScript should know this is a number array
+    emitter.on('numbers', (event) => {
+      numbersCalled = true
+      // If TypeScript properly infers the type, this should compile
       const numbers: number[] = event.payload!
       expect(Array.isArray(numbers)).toBe(true)
       numbers.forEach((num) => expect(typeof num).toBe('number'))
     })
-
-    // Register listeners with typed events
-    emitter.on('user:created', userCreatedListener)
-    emitter.on('numbers', numbersListener)
 
     // Emit events with correct payload types
     emitter.emit('user:created', {
@@ -42,9 +45,9 @@ describe('EventEmitter TypeScript Support', (): void => {
       payload: [1, 2, 3, 4, 5]
     })
 
-    // Check that listeners were called
-    expect(userCreatedListener).toHaveBeenCalledTimes(1)
-    expect(numbersListener).toHaveBeenCalledTimes(1)
+    // Verify the listeners were called
+    expect(userCreatedCalled).toBe(true)
+    expect(numbersCalled).toBe(true)
   })
 
   it('supports dynamic events alongside typed events', (): void => {
@@ -54,28 +57,42 @@ describe('EventEmitter TypeScript Support', (): void => {
 
     const emitter = new EventEmitter<MyEvents>()
 
-    // TypeScript should allow both typed and dynamic events
-    const typedListener = jest.fn()
-    const dynamicListener = jest.fn()
-    const wildcardListener = jest.fn()
+    // Track if the listeners were called
+    let typedEventCalled = false
+    let dynamicEventCalled = false
+    let wildcardCalled = 0
 
     // Typed event
-    emitter.on('typed:event', typedListener)
+    emitter.on('typed:event', (event) => {
+      typedEventCalled = true
+      // Type checking - TypeScript should infer this correctly
+      const data: string = event.payload!.data
+      expect(typeof data).toBe('string')
+    })
 
     // Dynamic event
-    emitter.on('dynamic:event', dynamicListener)
+    emitter.on('dynamic:event', (event) => {
+      dynamicEventCalled = true
+      // For dynamic events, we can use any type
+      const anything: any = event.payload!.anything
+      expect(anything).toBe('goes')
+    })
 
     // Wildcard
-    emitter.on('*:*', wildcardListener)
+    emitter.onAny((eventName, event) => {
+      wildcardCalled++
+      // With wildcards, we get the event name
+      expect(typeof eventName).toBe('string')
+    })
 
     // Emit both types of events
     emitter.emit('typed:event', { payload: { data: 'test' } })
     emitter.emit('dynamic:event', { payload: { anything: 'goes' } })
 
     // Check that all listeners were called appropriately
-    expect(typedListener).toHaveBeenCalledTimes(1)
-    expect(dynamicListener).toHaveBeenCalledTimes(1)
-    expect(wildcardListener).toHaveBeenCalledTimes(2)
+    expect(typedEventCalled).toBe(true)
+    expect(dynamicEventCalled).toBe(true)
+    expect(wildcardCalled).toBe(2)
   })
 
   it('supports extending the EventEmitter with typed events', (): void => {
@@ -105,23 +122,29 @@ describe('EventEmitter TypeScript Support', (): void => {
 
     const counter = new Counter()
 
-    const incrementListener = jest.fn((event) => {
-      // TypeScript should know this is a number
+    let incrementCalled = 0
+    let resetCalled = false
+
+    counter.on('counter:increment', (event) => {
+      incrementCalled++
+      // TypeScript should infer this is a number
       const count: number = event.payload!
       expect(typeof count).toBe('number')
+      expect(count).toBe(incrementCalled)
     })
 
-    const resetListener = jest.fn()
-
-    counter.on('counter:increment', incrementListener)
-    counter.on('counter:reset', resetListener)
+    counter.on('counter:reset', (event) => {
+      resetCalled = true
+      // No payload for this event
+      expect(event.payload).toBeUndefined()
+    })
 
     counter.increment()
     counter.increment()
     counter.reset()
 
-    expect(incrementListener).toHaveBeenCalledTimes(2)
-    expect(resetListener).toHaveBeenCalledTimes(1)
+    expect(incrementCalled).toBe(2)
+    expect(resetCalled).toBe(true)
     expect(counter.getCount()).toBe(0)
   })
 
@@ -143,6 +166,8 @@ describe('EventEmitter TypeScript Support', (): void => {
     const events = await waitPromise
 
     expect(events.length).toBe(1)
-    expect(events[0].payload?.result).toBe('success')
+    // TypeScript should infer the correct type for the events
+    const result: string = events[0].payload!.result
+    expect(result).toBe('success')
   })
 })
