@@ -15,17 +15,16 @@ import {
 } from './EventEmitter.types'
 
 export class EventEmitter<TEventMap extends EventMap = DefaultEventMap> {
-  public readonly options: EventEmitterOptions
+  public options: EventEmitterOptions
 
-  private _maxListeners: number
   private _listeners: Map<string, ListenerRecord[]> = new Map()
 
   public get maxListeners(): number {
-    return this._maxListeners
+    return this.options.maxListeners!
   }
 
   public set maxListeners(value: number) {
-    this._maxListeners = value
+    this.options.maxListeners = value
   }
 
   public get eventNames(): EventNames {
@@ -55,13 +54,12 @@ export class EventEmitter<TEventMap extends EventMap = DefaultEventMap> {
       wildcard: true,
       delimiter: ':',
       ignoreErrors: true,
-      maxListeners: 20,
       newListenerEvent: true,
       removeListenerEvent: false,
       verboseMemoryLeak: true,
-      ...options
+      ...options,
+      maxListeners: options?.maxListeners ?? 20
     }
-    this._maxListeners = this.options.maxListeners || 20
   }
 
   public emit<K extends keyof TEventMap & string>(eventName: K, event: TypedEventIn<TEventMap[K]>): boolean
@@ -368,7 +366,7 @@ export class EventEmitter<TEventMap extends EventMap = DefaultEventMap> {
     }
 
     // Check memory leak
-    if (listeners.length > this.maxListeners && this.options.verboseMemoryLeak) {
+    if (listeners.length > this.maxListeners && this.maxListeners > 0 && this.options.verboseMemoryLeak) {
       console.warn(`Warning: Potential memory leak detected. ${listeners.length} listeners added for event "${eventNameStr}". Use setMaxListeners to increase limit.`)
     }
 

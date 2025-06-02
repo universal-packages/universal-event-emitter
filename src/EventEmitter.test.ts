@@ -399,6 +399,28 @@ export async function eventEmitterTest() {
     assert(warnMessage.includes('3 listeners'), 'should mention listener count')
   })
 
+  await runTest('No memory leak warning when maxListeners is 0 (unlimited)', async () => {
+    const emitter = new EventEmitter({ maxListeners: 0, verboseMemoryLeak: true })
+
+    // Capture console.warn
+    const originalWarn = console.warn
+    let warnMessage = ''
+    console.warn = (message: string) => {
+      warnMessage = message
+    }
+
+    // Add many listeners - should not trigger warning when maxListeners = 0
+    for (let i = 0; i < 100; i++) {
+      emitter.on('test', () => {})
+    }
+
+    console.warn = originalWarn
+
+    assertEquals(warnMessage, '', 'should not warn about memory leak when maxListeners is 0')
+    assertEquals(emitter.maxListeners, 0, 'maxListeners should be 0')
+    assertEquals(emitter.listenerCount, 100, 'should have 100 listeners')
+  })
+
   // newListener and removeListener events
   await runTest('newListener event is emitted', async () => {
     const emitter = new EventEmitter({ newListenerEvent: true })
@@ -476,6 +498,29 @@ export async function eventEmitterTest() {
 
     emitter.maxListeners = 50
     assertEquals(emitter.maxListeners, 50, 'should update maxListeners')
+  })
+
+  await runTest('maxListeners setter works with 0 for unlimited', async () => {
+    const emitter = new EventEmitter()
+
+    emitter.maxListeners = 0
+    assertEquals(emitter.maxListeners, 0, 'should accept 0 for unlimited listeners')
+
+    // Capture console.warn
+    const originalWarn = console.warn
+    let warnMessage = ''
+    console.warn = (message: string) => {
+      warnMessage = message
+    }
+
+    // Add many listeners - should not trigger warning when maxListeners = 0
+    for (let i = 0; i < 50; i++) {
+      emitter.on('test', () => {})
+    }
+
+    console.warn = originalWarn
+
+    assertEquals(warnMessage, '', 'should not warn about memory leak when maxListeners is set to 0')
   })
 
   // Wildcard disabled tests
@@ -778,9 +823,9 @@ export async function eventEmitterTest() {
     assertEquals(errorThrown, true, 'error should be thrown')
   })
 
-  await runTest('maxListeners fallback to default when not provided', async () => {
+  await runTest('maxListeners handles 0 and undefined correctly', async () => {
     const emitter = new EventEmitter({ maxListeners: 0 })
-    assertEquals(emitter.maxListeners, 20, 'should fallback to 20 when maxListeners is 0')
+    assertEquals(emitter.maxListeners, 0, 'should accept 0 when maxListeners is 0 (unlimited)')
 
     const emitter2 = new EventEmitter({ maxListeners: undefined })
     assertEquals(emitter2.maxListeners, 20, 'should fallback to 20 when maxListeners is undefined')
