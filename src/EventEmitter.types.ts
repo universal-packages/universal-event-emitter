@@ -1,11 +1,9 @@
 import { Measurement } from '@universal-packages/time-measurer'
 
-export type EventName = symbol | string
-export type EventNames = EventName[]
 export interface EventEmitterOptions {
   delimiter?: string
   maxListeners?: number
-  wildcard?: boolean
+  useWildcards?: boolean
   newListenerEvent?: boolean
   removeListenerEvent?: boolean
   verboseMemoryLeak?: boolean
@@ -54,9 +52,4 @@ export type DefaultEventMap = Record<string, any>
 
 export interface CancelablePromise<T> extends Promise<T> {
   cancel(reason: string): undefined
-}
-
-export interface ListenerRecord {
-  listener: ListenerFn
-  once: boolean
 }

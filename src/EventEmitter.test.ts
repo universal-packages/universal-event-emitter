@@ -33,7 +33,7 @@ export async function eventEmitterTest() {
     const emitter = new EventEmitter({ newListenerEvent: false })
     let callCount = 0
 
-    emitter.on('*', () => {
+    emitter.on('**', () => {
       callCount++
     })
 
@@ -326,7 +326,7 @@ export async function eventEmitterTest() {
   await runTest('hasListeners with wildcards', async () => {
     const emitter = new EventEmitter()
 
-    emitter.on('user:created', () => {})
+    emitter.on('user:*', () => {})
 
     assertEquals(emitter.hasListeners('user:*'), true, 'should match wildcard pattern')
     assertEquals(emitter.hasListeners('admin:*'), false, 'should not match different pattern')
@@ -336,31 +336,51 @@ export async function eventEmitterTest() {
   await runTest('Error events with ignoreErrors=true', async () => {
     const emitter = new EventEmitter({ ignoreErrors: true })
 
-    // Should not throw when no error listeners
-    const result = emitter.emit('error', { error: new Error('test error') })
-    assert(result === false, 'error emit should return false when no listeners')
-  })
+    emitter.on('event', () => {
+      throw new Error('test error')
+    })
 
-  await runTest('Error events with ignoreErrors=false throws', async () => {
-    const emitter = new EventEmitter({ ignoreErrors: false })
+    let error: Error | undefined
 
     try {
-      emitter.emit('error', { error: new Error('test error') })
-      assert(false, 'should have thrown error')
-    } catch (error: any) {
-      assert(error.message === 'test error', 'should throw the provided error')
+      emitter.emit('event')
+    } catch (err: unknown) {
+      error = err as Error
     }
+
+    assertEquals(error, undefined, 'should not throw error')
   })
 
-  await runTest('Error events with ignoreErrors=false and no error object', async () => {
+  await runTest('Error events with ignoreErrors=false and a error listener is in place', async () => {
     const emitter = new EventEmitter({ ignoreErrors: false })
 
+    emitter.on('error', (event) => {
+      assert(event.error?.message === 'test error', 'should throw the provided error')
+    })
+
+    emitter.on('event', () => {
+      throw new Error('test error')
+    })
+
+    emitter.emit('event')
+  })
+
+  await runTest('Error events with ignoreErrors=false but no error listener is in place', async () => {
+    const emitter = new EventEmitter({ ignoreErrors: false })
+
+    emitter.on('event', () => {
+      throw new Error('test error')
+    })
+
+    let error: Error | undefined
+
     try {
-      emitter.emit('error')
-      assert(false, 'should have thrown error')
-    } catch (error: any) {
-      assert(error.message === 'Unhandled error event', 'should throw default error')
+      emitter.emit('event')
+    } catch (err: unknown) {
+      error = err as Error
     }
+
+    assertEquals(error?.message, 'test error', 'should throw error')
   })
 
   await runTest('Listener exceptions are thrown at the moment of emitting', async () => {
@@ -426,7 +446,7 @@ export async function eventEmitterTest() {
     const emitter = new EventEmitter({ newListenerEvent: true })
     let newListenerCalled = false
 
-    emitter.on('newListener', (event) => {
+    emitter.on('emitter-new-listener', (event) => {
       newListenerCalled = true
       assert(event && event.payload && event.payload.eventName === 'test', 'should include event name')
       assert(event && event.payload && typeof event.payload.listener === 'function', 'should include listener function')
@@ -441,7 +461,7 @@ export async function eventEmitterTest() {
     let removeListenerCalled = false
     const testListener = () => {}
 
-    emitter.on('removeListener', (event) => {
+    emitter.on('emitter-remove-listener', (event) => {
       removeListenerCalled = true
       assert(event && event.payload && event.payload.eventName === 'test', 'should include event name')
       assert(event && event.payload && event.payload.listener === testListener, 'should include listener function')
@@ -525,7 +545,7 @@ export async function eventEmitterTest() {
 
   // Wildcard disabled tests
   await runTest('Wildcard disabled works correctly', async () => {
-    const emitter = new EventEmitter({ wildcard: false })
+    const emitter = new EventEmitter({ useWildcards: false })
     let callCount = 0
 
     emitter.on('*', () => {
@@ -555,22 +575,6 @@ export async function eventEmitterTest() {
     emitter.emit('user:created')
 
     assertEquals(callCount, 2, 'should match complex patterns correctly')
-  })
-
-  // Async error handling
-  await runTest('Async emission handles errors correctly', async () => {
-    const emitter = new EventEmitter({ ignoreErrors: true })
-    let successCount = 0
-
-    // Test that async listeners return promises when they don't throw synchronously
-    emitter.on('test', async () => {
-      await new Promise((resolve) => setTimeout(resolve, 5))
-      successCount++
-    })
-
-    const result = await emitter.emitAsync('test')
-    assertEquals(successCount, 1, 'async listener should complete')
-    assertEquals(result, true, 'should return true')
   })
 
   // Edge cases
@@ -660,7 +664,7 @@ export async function eventEmitterTest() {
 
   await runTest('All default options are set correctly', async () => {
     const emitter = new EventEmitter()
-    assertEquals(emitter.options.wildcard, true, 'wildcard should default to true')
+    assertEquals(emitter.options.useWildcards, true, 'useWildcards should default to true')
     assertEquals(emitter.options.ignoreErrors, true, 'ignoreErrors should default to true')
     assertEquals(emitter.options.verboseMemoryLeak, true, 'verboseMemoryLeak should default to true')
     assertEquals(emitter.options.newListenerEvent, true, 'newListenerEvent should default to true')
@@ -758,13 +762,19 @@ export async function eventEmitterTest() {
   })
 
   await runTest('removeAllListeners with wildcard patterns', async () => {
-    const emitter = new EventEmitter({ wildcard: true })
+    const emitter = new EventEmitter()
     let userCreatedCount = 0
     let userUpdatedCount = 0
     let adminLoginCount = 0
 
     emitter.on('user:created', () => {
       userCreatedCount++
+    })
+    emitter.on('user:created', () => {
+      userCreatedCount++
+    })
+    emitter.on('user:updated', () => {
+      userUpdatedCount++
     })
     emitter.on('user:updated', () => {
       userUpdatedCount++
@@ -773,8 +783,8 @@ export async function eventEmitterTest() {
       adminLoginCount++
     })
 
-    // Remove all user events using wildcard
-    emitter.removeAllListeners('user:*')
+    // Remove all user events from array
+    emitter.removeAllListeners(['user:created', 'user:updated'])
 
     emitter.emit('user:created')
     emitter.emit('user:updated')
@@ -795,32 +805,74 @@ export async function eventEmitterTest() {
     assertEquals(result2, false, 'should return false when no listeners exist for any event')
   })
 
-  await runTest('emitAsync error handling with ignoreErrors=false', async () => {
-    const emitter = new EventEmitter({ ignoreErrors: false })
-    let errorThrown = false
+  await runTest('Async error events with ignoreErrors=true', async () => {
+    const emitter = new EventEmitter({ ignoreErrors: true })
+
+    emitter.on('event', async () => {
+      await new Promise((resolve) => setTimeout(resolve, 5))
+      throw new Error('test error')
+    })
+
+    let error: Error | undefined
 
     try {
-      await emitter.emitAsync('error', { error: new Error('Test async error') })
-    } catch (error) {
-      errorThrown = true
-      assertEquals((error as Error).message, 'Test async error', 'should throw the original error')
+      await emitter.emitAsync('event')
+    } catch (err: unknown) {
+      error = err as Error
     }
 
-    assertEquals(errorThrown, true, 'error should be thrown')
+    assertEquals(error, undefined, 'should not throw error')
   })
 
-  await runTest('emitAsync error handling with no error object', async () => {
+  await runTest('Async error events with ignoreErrors=false and a error listener is in place', async () => {
     const emitter = new EventEmitter({ ignoreErrors: false })
-    let errorThrown = false
+
+    emitter.on('error', async (event) => {
+      await new Promise((resolve) => setTimeout(resolve, 5))
+      assert(event.error?.message === 'test error', 'should throw the provided error')
+    })
+
+    emitter.on('event', async () => {
+      await new Promise((resolve) => setTimeout(resolve, 5))
+      throw new Error('test error')
+    })
+
+    await emitter.emitAsync('event')
+  })
+
+  await runTest('Async error events with ignoreErrors=false but no error listener is in place', async () => {
+    const emitter = new EventEmitter({ ignoreErrors: false })
+
+    emitter.on('event', async () => {
+      await new Promise((resolve) => setTimeout(resolve, 5))
+      throw new Error('test error')
+    })
+
+    let error: Error | undefined
 
     try {
-      await emitter.emitAsync('error')
-    } catch (error) {
-      errorThrown = true
-      assertEquals((error as Error).message, 'Unhandled error event', 'should throw default error message')
+      await emitter.emitAsync('event')
+    } catch (err: unknown) {
+      error = err as Error
     }
 
-    assertEquals(errorThrown, true, 'error should be thrown')
+    assertEquals(error?.message, 'test error', 'should throw error')
+  })
+
+  await runTest('Async listener exceptions are thrown at the moment of emitting', async () => {
+    const emitter = new EventEmitter({ ignoreErrors: false })
+
+    emitter.on('test', async () => {
+      await new Promise((resolve) => setTimeout(resolve, 5))
+      throw new Error('listener error')
+    })
+
+    try {
+      await emitter.emitAsync('test')
+      assert(false, 'should have thrown listener error')
+    } catch (error: any) {
+      assert(error.message === 'listener error', 'should throw listener error')
+    }
   })
 
   await runTest('maxListeners handles 0 and undefined correctly', async () => {
@@ -869,27 +921,27 @@ export async function eventEmitterTest() {
     let userEventCount = 0
     let createdEventCount = 0
 
-    emitter.on('user*:login', () => {
+    emitter.on('user:*:login', () => {
       userEventCount++
     })
-    emitter.on('*:*created', () => {
+    emitter.on('*:created', () => {
       createdEventCount++
     })
 
     // Test partial wildcards within segments
-    emitter.emit('user:login') // Should match user*:login
-    emitter.emit('userAdmin:login') // Should match user*:login
-    emitter.emit('admin:login') // Should NOT match user*:login
-    emitter.emit('admin:created') // Should match *:*created
-    emitter.emit('user:newcreated') // Should match *:*created
-    emitter.emit('admin:updated') // Should NOT match *:*created
+    emitter.emit('user:normal:login') // Should match user:*:login
+    emitter.emit('user:admin:login') // Should match user:*:login
+    emitter.emit('admin:normal:login') // Should NOT match user:*:login
+    emitter.emit('admin:created') // Should match *:created
+    emitter.emit('user:created') // Should match *:created
+    emitter.emit('admin:updated') // Should NOT match *:created
 
-    assertEquals(userEventCount, 2, 'user*:login should match user:login and userAdmin:login')
-    assertEquals(createdEventCount, 2, '*:*created should match admin:created and user:newcreated')
+    assertEquals(userEventCount, 2, 'user:*:login should match user:normal:login and user:admin:login')
+    assertEquals(createdEventCount, 2, '*:created should match admin:created and user:created')
   })
 
   await runTest('Double star wildcard patterns (**)', async () => {
-    const emitter = new EventEmitter({ wildcard: true })
+    const emitter = new EventEmitter()
     let recursiveCount = 0
     let specificCount = 0
 
@@ -911,24 +963,8 @@ export async function eventEmitterTest() {
     assertEquals(specificCount, 3, 'user:** should match all user patterns')
   })
 
-  await runTest('Wildcard pattern edge cases', async () => {
-    const emitter = new EventEmitter({ wildcard: true })
-    let edgeCaseCount = 0
-
-    emitter.on('test*pattern', () => {
-      edgeCaseCount++
-    })
-
-    // Test patterns that should not match
-    emitter.emit('test:pattern') // Different delimiter, should NOT match
-    emitter.emit('testpattern') // Should match (* can be empty)
-    emitter.emit('testsomepattern') // Should match
-
-    assertEquals(edgeCaseCount, 2, 'should match testpattern and testsomepattern')
-  })
-
   await runTest('Wildcard non-matching patterns to ensure branch coverage', async () => {
-    const emitter = new EventEmitter({ wildcard: true })
+    const emitter = new EventEmitter()
     let matchCount = 0
 
     emitter.on('user:profile:*', () => {
@@ -947,35 +983,6 @@ export async function eventEmitterTest() {
     // Now test one that should match
     emitter.emit('user:profile:settings')
     assertEquals(matchCount, 1, 'user:profile:settings should match')
-  })
-
-  await runTest('Edge case to ensure final return false in wildcard matching', async () => {
-    const emitter = new EventEmitter({ wildcard: true })
-    let matchCount = 0
-
-    // This should test a pattern that includes '*' but not '**' and should not match
-    emitter.on('test*', () => {
-      matchCount++
-    })
-
-    // This event name contains no '*' but the pattern does, but with different structure
-    // The pattern 'test*' should not match 'test' when using delimiter logic
-    emitter.emit('test')
-
-    assertEquals(matchCount, 1, 'test should match test* pattern')
-
-    // Reset for a different test
-    emitter.removeAllListeners()
-    matchCount = 0
-
-    // Test a pattern that should definitely not match to hit the final return false
-    emitter.on('*abc*', () => {
-      matchCount++
-    })
-
-    // This should not match because it doesn't contain 'abc'
-    emitter.emit('xyz')
-    assertEquals(matchCount, 0, 'xyz should not match *abc* pattern')
   })
 
   console.log('\n✅ All EventEmitter tests completed!')

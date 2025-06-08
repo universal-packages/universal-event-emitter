@@ -17,5 +17,6 @@ export async function runTest(testName: string, testFn: () => void | Promise<voi
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error)
     console.log(`❌ ${testName} - FAILED: ${errorMessage}`)
+    throw error
   }
 }

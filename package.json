@@ -19,6 +19,7 @@
     "prepare": "husky"
   },
   "dependencies": {
+    "@universal-packages/path-matcher": "^1.6.0",
     "@universal-packages/time-measurer": "^2.0.0"
   },
   "devDependencies": {

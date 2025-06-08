@@ -47,7 +47,7 @@ Creates a new EventEmitter instance.
 - **`maxListeners`** `Number` `default: 20`
   The maximum number of listeners for an event before start considering it a memory leak.
 
-- **`wildcard`** `Boolean` `default: true`
+- **`useWildcards`** `Boolean` `default: true`
   Whether to use wildcards for event names. ex: `'user:*` or even `*` for all events.
 
 - **`newListenerEvent`** `Boolean` `default: true`
@@ -101,7 +101,7 @@ Returns the listeners for a given event.
 #### emit
 
 ```ts
-emitter.emit(eventName: EventName | EventNames, event?: EventIn): boolean
+emitter.emit(eventName: string | string[], event?: EventIn): boolean
 ```
 
 Emits an event for the given event name or names. Or even wildcards.
@@ -152,7 +152,7 @@ The event object that is passed to the listener. It is packed with common and us
 #### emitAsync
 
 ```ts
-emitter.emitAsync(eventName: EventName | EventNames, event?: EventIn): Promise<any[]>
+emitter.emitAsync(eventName: string | string[], event?: EventIn): Promise<any[]>
 ```
 
 Emits an event asynchronously returning a promise that resolves when all listeners are done.
@@ -160,7 +160,7 @@ Emits an event asynchronously returning a promise that resolves when all listene
 #### addListener
 
 ```ts
-emitter.addListener(eventName: EventName | EventNames, listener: ListenerFn): this
+emitter.addListener(eventName: string | string[], listener: ListenerFn): this
 ```
 
 Adds a listener for a given event or events.
@@ -171,13 +171,28 @@ emitter.addListener('event', (event) => {
   console.log(event)
 })
 
-// Will be called when any event is emitted
+// Will be called when one level event is emitted
 emitter.addListener('*', (event) => {
   console.log(event)
 })
 
-// Will be called when any event that starts with "user:" is emitted
+// Will be called when two levels event is emitted
+emitter.addListener('*:*', (event) => {
+  console.log(event)
+})
+
+// Will be called for all events
+emitter.addListener('**', (event) => {
+  console.log(event)
+})
+
+// Will be called when any 2event that starts with "user:" is emitted
 emitter.addListener('user:*', (event) => {
+  console.log(event)
+})
+
+// Will be called when any event that starts with "user:" is emitted
+emitter.addListener('user:**', (event) => {
   console.log(event)
 })
 
@@ -186,7 +201,7 @@ emitter.addListener(['users:created', 'users:updated'], (event) => {
   console.log(event)
 })
 
-// Will be called when the event any of the events that start with "users:" or "tasks:" are emitted
+// Will be called when the event any of the 2 level events that start with "users:" or "tasks:" are emitted
 emitter.addListener(['users:*', 'tasks:*'], (event) => {
   console.log(event)
 })
@@ -203,7 +218,7 @@ The listener function that is called when an event is emitted. It receives all t
 #### on
 
 ```ts
-emitter.on(eventName: EventName | EventNames, listener: ListenerFn): this
+emitter.on(eventName: string | string[], listener: ListenerFn): this
 ```
 
 Adds a listener for a given event just like `addListener`,
@@ -217,7 +232,7 @@ emitter.on('event', (event) => {
 #### prependListener
 
 ```ts
-emitter.on(eventName: EventName | EventNames, listener: ListenerFn): this
+emitter.on(eventName: string | string[], listener: ListenerFn): this
 ```
 
 Adds a listener for a given event just like `addListener`, but the listener will be called before the other listeners.
@@ -231,7 +246,7 @@ emitter.prependListener('event', (event) => {
 #### once
 
 ```ts
-emitter.once(eventName: EventName | EventNames, listener: ListenerFn): this
+emitter.once(eventName: string | string[], listener: ListenerFn): this
 ```
 
 Adds a listener for a given event just like `addListener`, but the listener will be called only once.
@@ -245,7 +260,7 @@ emitter.once('event', (event) => {
 #### prependOnceListener
 
 ```ts
-emitter.prependOnceListener(eventName: EventName | EventNames, listener: ListenerFn): this
+emitter.prependOnceListener(eventName: string | string[], listener: ListenerFn): this
 ```
 
 Adds a listener for a given event just like `once`, but the listener will be called before the other listeners.
@@ -259,7 +274,7 @@ emitter.prependOnceListener('event', (event) => {
 #### removeListener
 
 ```ts
-emitter.removeListener(eventName: EventName | EventNames, listener: ListenerFn): this
+emitter.removeListener(eventName: string | string[], listener: ListenerFn): this
 ```
 
 Removes a listener for a given event or events.
@@ -274,22 +289,12 @@ emitter.removeListener('event', (event) => {
 emitter.removeListener(['users:created', 'users:updated'], (event) => {
   console.log(event)
 })
-
-// Will remove all listeners that start with "users:"
-emitter.removeListener('users:*', (event) => {
-  console.log(event)
-})
-
-// Will remove all listeners that start with "users:" and "tasks:"
-emitter.removeListener(['users:*', 'tasks:*'], (event) => {
-  console.log(event)
-})
 ```
 
 #### off
 
 ```ts
-emitter.off(eventName: EventName | EventNames, listener: ListenerFn): this
+emitter.off(eventName: string | string[], listener: ListenerFn): this
 ```
 
 Removes a listener for a given event or events.
@@ -297,7 +302,7 @@ Removes a listener for a given event or events.
 #### removeAllListeners
 
 ```ts
-emitter.removeAllListeners(eventName?: EventName | EventNames): this
+emitter.removeAllListeners(eventName?: string | string[]): this
 ```
 
 Removes all listeners for a given event or events.
@@ -310,7 +315,7 @@ emitter.removeAllListeners('event')
 #### waitFor
 
 ```ts
-emitter.waitFor(eventName: EventName): CancelablePromise<EmittedEvent<TPayload>[]>
+emitter.waitFor(eventName: string): CancelablePromise<EmittedEvent<TPayload>[]>
 ```
 
 Waits for a given event to be emitted, it returns a cancelable promise that resolves with the emitted event.
@@ -326,7 +331,7 @@ promise.then((event) => {
 #### hasListeners
 
 ```ts
-emitter.hasListeners(eventName: EventName | EventNames): Boolean
+emitter.hasListeners(eventName: string | string[]): Boolean
 ```
 
 Returns true if there are listeners for a given event or events.
