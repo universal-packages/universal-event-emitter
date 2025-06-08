@@ -163,7 +163,7 @@ export async function eventEmitterTest() {
     emitter.on('test', () => {
       callOrder.push('normal')
     })
-    emitter.prependListener('test', () => {
+    emitter.prependListener(['test', 'test2'], () => {
       callOrder.push('prepend')
     })
 
@@ -182,6 +182,11 @@ export async function eventEmitterTest() {
       callOrder.push('normal')
     })
     emitter.prependOnceListener('test', () => {
+      callOrder.push('prepend-once')
+      prependCallCount++
+    })
+
+    emitter.prependOnceListener(['test2', 'test3'], () => {
       callOrder.push('prepend-once')
       prependCallCount++
     })
@@ -321,6 +326,7 @@ export async function eventEmitterTest() {
     assert(emitter.hasListeners() === true, 'should have listeners')
     assert(emitter.hasListeners('test') === true, 'should have listeners for test event')
     assert(emitter.hasListeners('other') === false, 'should not have listeners for other event')
+    assert(emitter.hasListeners(['test', 'other']) === false, 'should not have listeners for multiple events')
   })
 
   await runTest('hasListeners with wildcards', async () => {
@@ -395,6 +401,25 @@ export async function eventEmitterTest() {
       assert(false, 'should have thrown listener error')
     } catch (error: any) {
       assert(error.message === 'listener error', 'should throw listener error')
+    }
+  })
+
+  await runTest('Listener exceptions are thrown if the an error handler throws', async () => {
+    const emitter = new EventEmitter({ ignoreErrors: false })
+
+    emitter.on('test', () => {
+      throw new Error('listener error')
+    })
+
+    emitter.on('error', () => {
+      throw new Error('error handler error')
+    })
+
+    try {
+      emitter.emit('test')
+      assert(false, 'should have thrown listener error')
+    } catch (error: any) {
+      assert(error.message === 'error handler error', 'should throw error handler error')
     }
   })
 
@@ -603,7 +628,7 @@ export async function eventEmitterTest() {
     const emitter = new EventEmitter()
     let callCount = 0
 
-    emitter.once('test', () => {
+    emitter.once(['test', 'test2'], () => {
       callCount++
     })
 
@@ -739,28 +764,6 @@ export async function eventEmitterTest() {
     assertEquals(emitter.hasListeners('event3'), true, 'event3 listeners should remain')
   })
 
-  await runTest('Error handling with ignoreErrors=true and listener exception', async () => {
-    const emitter = new EventEmitter({ ignoreErrors: true })
-    let errorThrown = false
-    let normalListenerCalled = false
-
-    emitter.on('test', () => {
-      throw new Error('Test error')
-    })
-    emitter.on('test', () => {
-      normalListenerCalled = true
-    })
-
-    try {
-      emitter.emit('test')
-    } catch (error) {
-      errorThrown = true
-    }
-
-    assertEquals(errorThrown, false, 'error should be ignored')
-    assertEquals(normalListenerCalled, true, 'other listeners should still be called')
-  })
-
   await runTest('removeAllListeners with wildcard patterns', async () => {
     const emitter = new EventEmitter()
     let userCreatedCount = 0
@@ -793,6 +796,22 @@ export async function eventEmitterTest() {
     assertEquals(userCreatedCount, 0, 'user:created listeners should be removed')
     assertEquals(userUpdatedCount, 0, 'user:updated listeners should be removed')
     assertEquals(adminLoginCount, 1, 'admin:login listeners should remain')
+  })
+
+  await runTest('removeAllListeners emits removeListener event', async () => {
+    const emitter = new EventEmitter({ removeListenerEvent: true })
+    let removeListenerCalled = false
+
+    emitter.on('user:created', () => {})
+    emitter.on('user:updated', () => {})
+
+    emitter.on('emitter-remove-listener', () => {
+      removeListenerCalled = true
+    })
+
+    emitter.removeAllListeners(['user:created', 'user:updated'])
+
+    assertEquals(removeListenerCalled, true, 'removeListener event should be emitted')
   })
 
   await runTest('emitAsync with no listeners returns false', async () => {
@@ -872,6 +891,25 @@ export async function eventEmitterTest() {
       assert(false, 'should have thrown listener error')
     } catch (error: any) {
       assert(error.message === 'listener error', 'should throw listener error')
+    }
+  })
+
+  await runTest('Async listener exceptions are thrown if the an error handler throws', async () => {
+    const emitter = new EventEmitter({ ignoreErrors: false })
+
+    emitter.on('test', () => {
+      throw new Error('listener error')
+    })
+
+    emitter.on('error', () => {
+      throw new Error('error handler error')
+    })
+
+    try {
+      await emitter.emitAsync('test')
+      assert(false, 'should have thrown listener error')
+    } catch (error: any) {
+      assert(error.message === 'error handler error', 'should throw error handler error')
     }
   })
 

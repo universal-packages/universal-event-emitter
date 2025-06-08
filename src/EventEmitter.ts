@@ -72,17 +72,16 @@ export class EventEmitter<TEventMap extends EventMap = DefaultEventMap> {
       try {
         result.target(emittedEvent)
       } catch (error) {
-        let errorEmitted = false
-        try {
-          errorEmitted = this.emit('error', {
-            error: error as Error,
-            ...emittedEvent
-          })
-        } catch (errorOnError) {
+        if (result.matcher === 'error') {
           if (!this.options.ignoreErrors) {
-            throw errorOnError
+            throw error
           }
         }
+
+        const errorEmitted = this.emit('error', {
+          error: error as Error,
+          ...emittedEvent
+        })
 
         if (!errorEmitted && !this.options.ignoreErrors) {
           throw error
@@ -110,17 +109,16 @@ export class EventEmitter<TEventMap extends EventMap = DefaultEventMap> {
       try {
         await result.target(emittedEvent)
       } catch (error) {
-        let errorEmitted = false
-        try {
-          errorEmitted = await this.emitAsync('error', {
-            error: error as Error,
-            ...emittedEvent
-          })
-        } catch (errorOnError) {
+        if (result.matcher === 'error') {
           if (!this.options.ignoreErrors) {
-            throw errorOnError
+            throw error
           }
         }
+
+        const errorEmitted = await this.emitAsync('error', {
+          error: error as Error,
+          ...emittedEvent
+        })
 
         if (!errorEmitted && !this.options.ignoreErrors) {
           throw error
@@ -282,8 +280,11 @@ export class EventEmitter<TEventMap extends EventMap = DefaultEventMap> {
     return promise
   }
 
-  public hasListeners<K extends keyof TEventMap & string>(event?: K): Boolean
-  public hasListeners(event?: string | string[]): Boolean {
+  public hasListeners<K extends keyof TEventMap & string>(event?: K): boolean
+  public hasListeners<K extends keyof TEventMap & string>(event?: K[]): boolean
+  public hasListeners(event?: string): boolean
+  public hasListeners(event?: string[]): boolean
+  public hasListeners(event?: string | string[]): boolean {
     if (!event) return this._pathMatcher.targetsCount > 0
 
     if (Array.isArray(event)) {
