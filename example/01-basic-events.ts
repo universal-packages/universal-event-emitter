@@ -1,6 +1,6 @@
 import { EventEmitter } from '../src/EventEmitter'
 
-export function basicEventsExample() {
+export async function basicEventsExample() {
   console.log('🔥 Basic Events Example')
   console.log('='.repeat(40))
 

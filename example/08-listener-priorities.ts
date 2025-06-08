@@ -1,6 +1,6 @@
 import { EventEmitter } from '../src/EventEmitter'
 
-export function listenerPrioritiesExample() {
+export async function listenerPrioritiesExample() {
   console.log('🔢 Listener Priorities Example')
   console.log('='.repeat(40))
 

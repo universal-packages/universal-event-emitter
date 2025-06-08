@@ -1,6 +1,6 @@
 import { EventEmitter } from '../src/EventEmitter'
 
-export function wildcardPatternsExample() {
+export async function wildcardPatternsExample() {
   console.log('🌟 Wildcard Patterns Example')
   console.log('='.repeat(40))
 

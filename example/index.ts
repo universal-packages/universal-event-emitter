@@ -6,24 +6,27 @@ import { waitForEventsExample } from './05-wait-for-events'
 import { memoryLeakDetectionExample } from './06-memory-leak-detection'
 import { errorHandlingExample } from './07-error-handling'
 import { listenerPrioritiesExample } from './08-listener-priorities'
+import { performanceBenchmark } from './09-performance-benchmark'
 
 async function runAllExamples() {
   console.log('\n' + '='.repeat(50) + '\n')
-  basicEventsExample()
+  await basicEventsExample()
   console.log('\n' + '='.repeat(50) + '\n')
-  wildcardPatternsExample()
+  await wildcardPatternsExample()
   console.log('\n' + '='.repeat(50) + '\n')
-  typedEventsExample()
+  await typedEventsExample()
   console.log('\n' + '='.repeat(50) + '\n')
-  asyncEventsExample()
+  await asyncEventsExample()
   console.log('\n' + '='.repeat(50) + '\n')
-  waitForEventsExample()
+  await waitForEventsExample()
   console.log('\n' + '='.repeat(50) + '\n')
-  memoryLeakDetectionExample()
+  await memoryLeakDetectionExample()
   console.log('\n' + '='.repeat(50) + '\n')
-  errorHandlingExample()
+  await errorHandlingExample()
   console.log('\n' + '='.repeat(50) + '\n')
-  listenerPrioritiesExample()
+  await listenerPrioritiesExample()
+  console.log('\n' + '='.repeat(50) + '\n')
+  await performanceBenchmark()
 }
 
 runAllExamples()

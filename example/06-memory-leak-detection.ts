@@ -1,6 +1,6 @@
 import { EventEmitter } from '../src/EventEmitter'
 
-export function memoryLeakDetectionExample() {
+export async function memoryLeakDetectionExample() {
   console.log('🧠 Memory Leak Detection Example')
   console.log('='.repeat(40))
 

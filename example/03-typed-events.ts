@@ -9,7 +9,7 @@ interface UserEvents {
   'status:changed': { from: string; to: string; timestamp: number }
 }
 
-export function typedEventsExample() {
+export async function typedEventsExample() {
   console.log('🔒 Typed Events Example')
   console.log('='.repeat(40))
 
