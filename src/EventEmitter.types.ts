@@ -36,12 +36,12 @@ export interface TypedEmittedEvent<TPayload> extends TypedEventIn<TPayload> {
 }
 
 export interface ListenerFn<TPayload = any> {
-  (event: EmittedEvent<TPayload>): void | Promise<void>
+  (event: EmittedEvent<TPayload>): any | Promise<any>
 }
 
 // Specific listener function for typed events
 export interface TypedListenerFn<TPayload> {
-  (event: TypedEmittedEvent<TPayload>): void | Promise<void>
+  (event: TypedEmittedEvent<TPayload>): any | Promise<any>
 }
 
 // Event map type for defining event names and their payload types
