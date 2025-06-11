@@ -514,13 +514,11 @@ function generateSummaryReport(results: BenchmarkResult[]): void {
   console.log('\n💡 KEY INSIGHTS:')
 
   const syncResults = results.filter((r) => r.testType === 'sync')
-  const asyncResults = results.filter((r) => r.testType === 'async')
   const wildcardResults = results.filter((r) => r.testType === 'wildcard')
 
   if (syncResults.length > 0) {
     const nodeSync = syncResults.filter((r) => r.library === 'Node EventEmitter')
     const universalSync = syncResults.filter((r) => r.library === 'Universal EventEmitter')
-    const ee2Sync = syncResults.filter((r) => r.library === 'EventEmitter2')
 
     if (nodeSync.length > 0 && universalSync.length > 0) {
       const nodeAvg = nodeSync.reduce((sum, r) => sum + r.eventsPerSecond, 0) / nodeSync.length
