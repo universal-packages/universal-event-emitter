@@ -1,7 +1,8 @@
+import { EEMap } from '../src'
 import { EventEmitter } from '../src/EventEmitter'
 
 // Define a strongly typed event map
-interface UserEvents {
+interface UserEvents extends EEMap {
   'user:created': { id: string; name: string; email: string }
   'user:updated': { id: string; changes: Record<string, any> }
   'user:deleted': { id: string; reason: string }
@@ -17,22 +18,22 @@ export async function typedEventsExample() {
   const emitter = new EventEmitter<UserEvents>()
 
   // TypeScript provides autocompletion and type checking for event names
-  emitter.on('user:created', (event) => {
+  emitter.addListener('user:created', (event) => {
     // event.payload is automatically typed as { id: string; name: string; email: string }
-    console.log(`✅ User created: ${event.payload?.name} (${event.payload?.email})`)
-    console.log(`   ID: ${event.payload?.id}`)
+    console.log(`✅ User created: ${event.payload.email} (${event.payload.email})`)
+    console.log(`   ID: ${event.payload.id}`)
   })
 
   emitter.on('user:updated', (event) => {
     // event.payload is automatically typed as { id: string; changes: Record<string, any> }
-    console.log(`📝 User ${event.payload?.id} updated:`)
-    console.log(`   Changes:`, event.payload?.changes)
+    console.log(`📝 User ${event.payload.id} updated:`)
+    console.log(`   Changes:`, event.payload.changes)
   })
 
   emitter.on('user:deleted', (event) => {
     // event.payload is automatically typed as { id: string; reason: string }
-    console.log(`❌ User ${event.payload?.id} deleted`)
-    console.log(`   Reason: ${event.payload?.reason}`)
+    console.log(`❌ User ${event.payload.id} deleted`)
+    console.log(`   Reason: ${event.payload.reason}`)
   })
 
   emitter.on('notification', (event) => {
@@ -42,8 +43,8 @@ export async function typedEventsExample() {
 
   emitter.on('status:changed', (event) => {
     // event.payload is automatically typed as { from: string; to: string; timestamp: number }
-    const date = new Date(event.payload?.timestamp || 0)
-    console.log(`🔄 Status changed from "${event.payload?.from}" to "${event.payload?.to}" at ${date.toLocaleTimeString()}`)
+    const date = new Date(event.payload.timestamp || 0)
+    console.log(`🔄 Status changed from "${event.payload.from}" to "${event.payload.to}" at ${date.toLocaleTimeString()}`)
   })
 
   // Emit events with full type safety
@@ -52,9 +53,7 @@ export async function typedEventsExample() {
   emitter.emit('user:created', {
     message: 'New user registered',
     payload: {
-      id: 'user-123',
-      name: 'Alice Johnson',
-      email: 'alice@example.com'
+      id: 'user-123'
     }
   })
 

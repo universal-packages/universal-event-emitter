@@ -10,7 +10,6 @@ export interface EventEmitterOptions {
   ignoreErrors?: boolean
 }
 
-// Base interface for events - keeps payload optional for dynamic events
 export interface EventIn<TPayload = any> {
   error?: Error
   measurement?: Measurement
@@ -18,8 +17,7 @@ export interface EventIn<TPayload = any> {
   payload?: TPayload
 }
 
-// Specific interface for typed events where payload is required
-export interface TypedEventIn<TPayload> {
+export interface TypedEventIn<TPayload = any> {
   error?: Error
   measurement?: Measurement
   message?: string
@@ -30,8 +28,7 @@ export interface EmittedEvent<TPayload = any> extends EventIn<TPayload> {
   event: string
 }
 
-// Specific interface for typed emitted events where payload is required
-export interface TypedEmittedEvent<TPayload> extends TypedEventIn<TPayload> {
+export interface TypedEmittedEvent<TPayload = any> extends TypedEventIn<TPayload> {
   event: string
 }
 
@@ -39,16 +36,16 @@ export interface ListenerFn<TPayload = any> {
   (event: EmittedEvent<TPayload>): any | Promise<any>
 }
 
-// Specific listener function for typed events
-export interface TypedListenerFn<TPayload> {
+export interface TypedListenerFn<TPayload = any> {
   (event: TypedEmittedEvent<TPayload>): any | Promise<any>
 }
 
-// Event map type for defining event names and their payload types
-export type EventMap = Record<string, any>
-
-// Default event map for backward compatibility
-export type DefaultEventMap = Record<string, any>
+export interface EEMap {
+  error: any
+  'emitter-memory-leak': { eventName: string; listenerCount: number; maxListeners: number }
+  'emitter-new-listener': { eventName: string; listener: ListenerFn }
+  'emitter-remove-listener': { matcher: string; target: ListenerFn }
+}
 
 export interface CancelablePromise<T> extends Promise<T> {
   cancel(reason: string): undefined

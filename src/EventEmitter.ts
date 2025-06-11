@@ -1,19 +1,8 @@
 import { GetTargetsResult, PathMatcher } from '@universal-packages/path-matcher'
 
-import {
-  CancelablePromise,
-  DefaultEventMap,
-  EmittedEvent,
-  EventEmitterOptions,
-  EventIn,
-  EventMap,
-  ListenerFn,
-  TypedEmittedEvent,
-  TypedEventIn,
-  TypedListenerFn
-} from './EventEmitter.types'
+import { CancelablePromise, EEMap, EmittedEvent, EventEmitterOptions, EventIn, ListenerFn, TypedEmittedEvent, TypedEventIn, TypedListenerFn } from './EventEmitter.types'
 
-export class EventEmitter<TEventMap extends EventMap = DefaultEventMap> {
+export class EventEmitter<EM extends EEMap = EEMap> {
   public options: EventEmitterOptions
 
   private _pathMatcher: PathMatcher<ListenerFn>
@@ -56,10 +45,12 @@ export class EventEmitter<TEventMap extends EventMap = DefaultEventMap> {
     })
   }
 
-  public emit<K extends keyof TEventMap & string>(eventName: K, event: TypedEventIn<TEventMap[K]>): boolean
-  public emit(eventName: string | string[], event?: EventIn): boolean
-  public emit(eventName: string | string[], event?: EventIn): boolean {
-    const results = this._pathMatcher.match(eventName)
+  public emit<K extends keyof EM>(eventName: K, event: TypedEventIn<EM[K]>): boolean
+  public emit(eventName: (keyof EM)[], event?: EventIn): boolean
+  public emit(eventName: string, event?: EventIn): boolean
+  public emit(eventName: string[], event?: EventIn): boolean
+  public emit<K extends keyof EM>(eventName: K | keyof EM[] | string | string[], event?: EventIn | TypedEventIn<EM[K]>): boolean {
+    const results = this._pathMatcher.match(eventName as string)
 
     if (results.length === 0) return false
 
@@ -92,11 +83,12 @@ export class EventEmitter<TEventMap extends EventMap = DefaultEventMap> {
     return true
   }
 
-  public async emitAsync<K extends keyof TEventMap & string>(eventName: K, event: TypedEventIn<TEventMap[K]>): Promise<boolean>
+  public async emitAsync<K extends keyof EM>(eventName: K, event: TypedEventIn<EM[K]>): Promise<boolean>
+  public async emitAsync(eventName: (keyof EM)[], event?: EventIn): Promise<boolean>
   public async emitAsync(eventName: string, event?: EventIn): Promise<boolean>
   public async emitAsync(eventName: string[], event?: EventIn): Promise<boolean>
-  public async emitAsync(eventName: string | string[], event?: EventIn): Promise<boolean> {
-    const results = this._pathMatcher.match(eventName)
+  public async emitAsync<K extends keyof EM>(eventName: K | keyof EM[] | string | string[], event?: EventIn | TypedEventIn<EM[K]>): Promise<boolean> {
+    const results = this._pathMatcher.match(eventName as string)
 
     if (results.length === 0) return false
 
@@ -129,150 +121,150 @@ export class EventEmitter<TEventMap extends EventMap = DefaultEventMap> {
     return true
   }
 
-  public addListener<K extends keyof TEventMap & string>(eventName: K, listener: TypedListenerFn<TEventMap[K]>): this
-  public addListener<K extends keyof TEventMap & string>(eventName: K[], listener: ListenerFn): this
+  public addListener<K extends keyof EM>(eventName: K, listener: TypedListenerFn<EM[K]>): this
+  public addListener(eventName: (keyof EM)[], listener: ListenerFn): this
   public addListener(eventName: string, listener: ListenerFn): this
   public addListener(eventName: string[], listener: ListenerFn): this
-  public addListener(eventName: string | string[], listener: ListenerFn | TypedListenerFn<any>): this {
+  public addListener<K extends keyof EM>(eventName: K | keyof EM[] | string | string[], listener: ListenerFn | TypedListenerFn<EM[K]>): this {
     if (Array.isArray(eventName)) {
       for (const name of eventName) {
-        this.addListener(name, listener)
+        this.addListener(name, listener as ListenerFn)
       }
       return this
     }
 
-    this._pathMatcher.addTarget(eventName, listener as ListenerFn)
-    this._emitNewListenerEvent(eventName, listener as ListenerFn)
-    this._checkMemoryLeak(eventName)
+    this._pathMatcher.addTarget(eventName as string, listener as ListenerFn)
+    this._emitNewListenerEvent(eventName as string, listener as ListenerFn)
+    this._checkMemoryLeak(eventName as string)
     return this
   }
 
-  public on<K extends keyof TEventMap & string>(eventName: K, listener: TypedListenerFn<TEventMap[K]>): this
-  public on<K extends keyof TEventMap & string>(eventName: K[], listener: ListenerFn): this
+  public on<K extends keyof EM>(eventName: K, listener: TypedListenerFn<EM[K]>): this
+  public on(eventName: (keyof EM)[], listener: ListenerFn): this
   public on(eventName: string, listener: ListenerFn): this
   public on(eventName: string[], listener: ListenerFn): this
-  public on(eventName: string | string[], listener: ListenerFn | TypedListenerFn<any>): this {
-    return this.addListener(eventName as string, listener)
+  public on<K extends keyof EM>(eventName: K | keyof EM[] | string | string[], listener: ListenerFn | TypedListenerFn<EM[K]>): this {
+    return this.addListener(eventName as string, listener as ListenerFn)
   }
 
-  public prependListener<K extends keyof TEventMap & string>(eventName: K, listener: TypedListenerFn<TEventMap[K]>): this
-  public prependListener<K extends keyof TEventMap & string>(eventName: K[], listener: ListenerFn): this
+  public prependListener<K extends keyof EM>(eventName: K, listener: TypedListenerFn<EM[K]>): this
+  public prependListener(eventName: (keyof EM)[], listener: ListenerFn): this
   public prependListener(eventName: string, listener: ListenerFn): this
   public prependListener(eventName: string[], listener: ListenerFn): this
-  public prependListener(eventName: string | string[], listener: ListenerFn | TypedListenerFn<any>): this {
+  public prependListener<K extends keyof EM>(eventName: K | keyof EM[] | string | string[], listener: ListenerFn | TypedListenerFn<EM[K]>): this {
     if (Array.isArray(eventName)) {
       for (const name of eventName) {
-        this.prependListener(name, listener)
+        this.prependListener(name, listener as ListenerFn)
       }
       return this
     }
 
-    this._pathMatcher.prependTarget(eventName, listener as ListenerFn)
-    this._emitNewListenerEvent(eventName, listener as ListenerFn)
-    this._checkMemoryLeak(eventName)
+    this._pathMatcher.prependTarget(eventName as string, listener as ListenerFn)
+    this._emitNewListenerEvent(eventName as string, listener as ListenerFn)
+    this._checkMemoryLeak(eventName as string)
     return this
   }
 
-  public once<K extends keyof TEventMap & string>(eventName: K, listener: TypedListenerFn<TEventMap[K]>): this
-  public once<K extends keyof TEventMap & string>(eventName: K[], listener: ListenerFn): this
+  public once<K extends keyof EM>(eventName: K, listener: TypedListenerFn<EM[K]>): this
+  public once(eventName: (keyof EM)[], listener: ListenerFn): this
   public once(eventName: string, listener: ListenerFn): this
   public once(eventName: string[], listener: ListenerFn): this
-  public once(eventName: string | string[], listener: ListenerFn | TypedListenerFn<any>): this {
+  public once<K extends keyof EM>(eventName: K | keyof EM[] | string | string[], listener: ListenerFn | TypedListenerFn<EM[K]>): this {
     if (Array.isArray(eventName)) {
       for (const name of eventName) {
-        this.once(name, listener)
+        this.once(name, listener as ListenerFn)
       }
       return this
     }
 
-    this._pathMatcher.addTargetOnce(eventName, listener as ListenerFn)
-    this._emitNewListenerEvent(eventName, listener as ListenerFn)
-    this._checkMemoryLeak(eventName)
+    this._pathMatcher.addTargetOnce(eventName as string, listener as ListenerFn)
+    this._emitNewListenerEvent(eventName as string, listener as ListenerFn)
+    this._checkMemoryLeak(eventName as string)
     return this
   }
 
-  public prependOnceListener<K extends keyof TEventMap & string>(eventName: K, listener: TypedListenerFn<TEventMap[K]>): this
-  public prependOnceListener<K extends keyof TEventMap & string>(eventName: K[], listener: ListenerFn): this
+  public prependOnceListener<K extends keyof EM>(eventName: K, listener: TypedListenerFn<EM[K]>): this
+  public prependOnceListener(eventName: (keyof EM)[], listener: ListenerFn): this
   public prependOnceListener(eventName: string, listener: ListenerFn): this
   public prependOnceListener(eventName: string[], listener: ListenerFn): this
-  public prependOnceListener(eventName: string | string[], listener: ListenerFn | TypedListenerFn<any>): this {
+  public prependOnceListener<K extends keyof EM>(eventName: K | keyof EM[] | string | string[], listener: ListenerFn | TypedListenerFn<EM[K]>): this {
     if (Array.isArray(eventName)) {
       for (const name of eventName) {
-        this.prependOnceListener(name, listener)
+        this.prependOnceListener(name, listener as ListenerFn)
       }
       return this
     }
 
-    this._pathMatcher.prependTargetOnce(eventName, listener as ListenerFn)
-    this._emitNewListenerEvent(eventName, listener as ListenerFn)
-    this._checkMemoryLeak(eventName)
+    this._pathMatcher.prependTargetOnce(eventName as string, listener as ListenerFn)
+    this._emitNewListenerEvent(eventName as string, listener as ListenerFn)
+    this._checkMemoryLeak(eventName as string)
     return this
   }
 
-  public removeListener<K extends keyof TEventMap & string>(eventName: K, listener: TypedListenerFn<TEventMap[K]>): this
-  public removeListener<K extends keyof TEventMap & string>(eventName: K[], listener: ListenerFn): this
+  public removeListener<K extends keyof EM>(eventName: K, listener: TypedListenerFn<EM[K]>): this
+  public removeListener(eventName: (keyof EM)[], listener: ListenerFn): this
   public removeListener(eventName: string, listener: ListenerFn): this
   public removeListener(eventName: string[], listener: ListenerFn): this
-  public removeListener(eventName: string | string[], listener: ListenerFn | TypedListenerFn<any>): this {
-    this._pathMatcher.removeTarget(eventName, listener as ListenerFn)
+  public removeListener<K extends keyof EM>(eventName: K | keyof EM[] | string | string[], listener: ListenerFn | TypedListenerFn<EM[K]>): this {
+    this._pathMatcher.removeTarget(eventName as string, listener as ListenerFn)
     if (Array.isArray(eventName)) {
       for (const name of eventName) {
         this._emitRemoveListenerEvents([{ matcher: name, target: listener as ListenerFn }])
       }
     } else {
-      this._emitRemoveListenerEvents([{ matcher: eventName, target: listener as ListenerFn }])
+      this._emitRemoveListenerEvents([{ matcher: eventName as string, target: listener as ListenerFn }])
     }
 
     return this
   }
 
-  public off<K extends keyof TEventMap & string>(eventName: K, listener: TypedListenerFn<TEventMap[K]>): this
-  public off<K extends keyof TEventMap & string>(eventName: K[], listener: ListenerFn): this
+  public off<K extends keyof EM>(eventName: K, listener: TypedListenerFn<EM[K]>): this
+  public off(eventName: (keyof EM)[], listener: ListenerFn): this
   public off(eventName: string, listener: ListenerFn): this
   public off(eventName: string[], listener: ListenerFn): this
-  public off(eventName: string | string[], listener: ListenerFn | TypedListenerFn<any>): this {
+  public off<K extends keyof EM>(eventName: K | keyof EM[] | string | string[], listener: ListenerFn | TypedListenerFn<EM[K]>): this {
     return this.removeListener(eventName as string, listener as ListenerFn)
   }
 
-  public removeAllListeners<K extends keyof TEventMap & string>(eventName?: K): this
-  public removeAllListeners<K extends keyof TEventMap & string>(eventName?: K[]): this
-  public removeAllListeners(eventName?: string): this
-  public removeAllListeners(eventName?: string[]): this
-  public removeAllListeners(eventName?: string | string[]): this {
+  public removeAllListeners<K extends keyof EM>(eventName: K): this
+  public removeAllListeners(eventName: (keyof EM)[]): this
+  public removeAllListeners(eventName: string): this
+  public removeAllListeners(eventName: string[]): this
+  public removeAllListeners<K extends keyof EM>(eventName: K | keyof EM[] | string | string[]): this {
     let targetsRemoved: GetTargetsResult<ListenerFn>[] = []
 
     if (this.options.removeListenerEvent) {
-      targetsRemoved = this._pathMatcher.getTargets(eventName)
+      targetsRemoved = this._pathMatcher.getTargets(eventName as string)
     }
 
-    this._pathMatcher.removeAllTargets(eventName)
+    this._pathMatcher.removeAllTargets(eventName as string)
 
     this._emitRemoveListenerEvents(targetsRemoved)
 
     return this
   }
 
-  public waitFor<K extends keyof TEventMap & string>(eventName: K): CancelablePromise<TypedEmittedEvent<TEventMap[K]>>
+  public waitFor<K extends keyof EM>(eventName: K): CancelablePromise<TypedEmittedEvent<EM[K]>>
   public waitFor(eventName: string): CancelablePromise<EmittedEvent>
-  public waitFor(eventName: string): CancelablePromise<EmittedEvent> {
+  public waitFor<K extends keyof EM>(eventName: K | string): CancelablePromise<TypedEmittedEvent<EM[K]>> {
     let cancelled = false
-    let promiseResolve: (value: EmittedEvent) => void
+    let promiseResolve: (value: TypedEmittedEvent<EM[K]>) => void
     let promiseReject: (reason?: any) => void
 
-    const listener = (event: EmittedEvent) => {
+    const listener = (event: TypedEmittedEvent<EM[K]>) => {
       if (!cancelled) promiseResolve!(event)
     }
 
-    const promise = new Promise<EmittedEvent>((resolve, reject) => {
+    const promise = new Promise<TypedEmittedEvent<EM[K]>>((resolve, reject) => {
       promiseReject = reject
       promiseResolve = resolve
 
-      this.once(eventName, listener)
-    }) as CancelablePromise<EmittedEvent>
+      this.once(eventName as string, listener as ListenerFn)
+    }) as CancelablePromise<TypedEmittedEvent<EM[K]>>
 
     promise.cancel = (reason: string) => {
       cancelled = true
-      this.removeListener(eventName, listener)
+      this.removeListener(eventName as string, listener as ListenerFn)
       promiseReject(new Error(reason))
       return undefined
     }
@@ -280,17 +272,16 @@ export class EventEmitter<TEventMap extends EventMap = DefaultEventMap> {
     return promise
   }
 
-  public hasListeners<K extends keyof TEventMap & string>(event?: K): boolean
-  public hasListeners<K extends keyof TEventMap & string>(event?: K[]): boolean
-  public hasListeners(event?: string): boolean
-  public hasListeners(event?: string[]): boolean
-  public hasListeners(event?: string | string[]): boolean {
-    if (!event) return this._pathMatcher.targetsCount > 0
+  public hasListeners<K extends keyof EM>(eventName: K): boolean
+  public hasListeners(eventName: string): boolean
+  public hasListeners(eventName: string[]): boolean
+  public hasListeners<K extends keyof EM>(eventName: K | string | string[]): boolean {
+    if (!eventName) return this._pathMatcher.targetsCount > 0
 
-    if (Array.isArray(event)) {
-      return this._pathMatcher.hasMatchers(event)
+    if (Array.isArray(eventName)) {
+      return this._pathMatcher.hasMatchers(eventName as string[])
     } else {
-      return this._pathMatcher.hasMatchers([event])
+      return this._pathMatcher.hasMatchers([eventName as string])
     }
   }
 
