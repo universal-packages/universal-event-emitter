@@ -45,11 +45,9 @@ export class EventEmitter<EM extends EEMap = EEMap> {
     })
   }
 
-  public emit<K extends keyof EM>(eventName: K, event: TypedEventIn<EM[K]>): boolean
+  public emit<K extends keyof EM & string>(eventName: K, event?: TypedEventIn<EM[K]>): boolean
   public emit(eventName: (keyof EM)[], event?: EventIn): boolean
-  public emit(eventName: string, event?: EventIn): boolean
-  public emit(eventName: string[], event?: EventIn): boolean
-  public emit<K extends keyof EM>(eventName: K | keyof EM[] | string | string[], event?: EventIn | TypedEventIn<EM[K]>): boolean {
+  public emit<K extends keyof EM>(eventName: K | keyof EM[], event?: EventIn | TypedEventIn<EM[K]>): boolean {
     const results = this._pathMatcher.match(eventName as string)
 
     if (results.length === 0) return false
@@ -69,7 +67,7 @@ export class EventEmitter<EM extends EEMap = EEMap> {
           }
         }
 
-        const errorEmitted = this.emit('error', {
+        const errorEmitted = this.emit('error' as any, {
           error: error as Error,
           ...emittedEvent
         })
@@ -107,7 +105,7 @@ export class EventEmitter<EM extends EEMap = EEMap> {
           }
         }
 
-        const errorEmitted = await this.emitAsync('error', {
+        const errorEmitted = await this.emitAsync('error' as any, {
           error: error as Error,
           ...emittedEvent
         })

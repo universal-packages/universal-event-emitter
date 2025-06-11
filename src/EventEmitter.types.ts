@@ -45,6 +45,7 @@ export interface EEMap {
   'emitter-memory-leak': { eventName: string; listenerCount: number; maxListeners: number }
   'emitter-new-listener': { eventName: string; listener: ListenerFn }
   'emitter-remove-listener': { matcher: string; target: ListenerFn }
+  [key: string]: any
 }
 
 export interface CancelablePromise<T> extends Promise<T> {

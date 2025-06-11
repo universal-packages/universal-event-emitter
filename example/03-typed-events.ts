@@ -53,7 +53,9 @@ export async function typedEventsExample() {
   emitter.emit('user:created', {
     message: 'New user registered',
     payload: {
-      id: 'user-123'
+      id: 'user-123',
+      name: 'Alice Johnson',
+      email: 'alice.johnson@example.com'
     }
   })
 
