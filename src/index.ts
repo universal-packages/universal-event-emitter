@@ -1,2 +1,2 @@
-export * from './EventEmitter.ts'
-export * from './EventEmitter.types.ts'
+export * from './EventEmitter'
+export * from './EventEmitter.types'

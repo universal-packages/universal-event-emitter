@@ -1,21 +1,24 @@
-import { EEMap } from '../src'
+import { InternalEventMap } from '../src'
 import { EventEmitter } from '../src/EventEmitter'
 
 // Define a strongly typed event map
-interface UserEvents extends EEMap {
+interface UserEvents {
   'user:created': { id: string; name: string; email: string }
   'user:updated': { id: string; changes: Record<string, any> }
   'user:deleted': { id: string; reason: string }
   notification: string
   'status:changed': { from: string; to: string; timestamp: number }
+  custom: undefined
 }
+
+class UserEvents extends EventEmitter<UserEvents & InternalEventMap> {}
 
 export async function typedEventsExample() {
   console.log('🔒 Typed Events Example')
   console.log('='.repeat(40))
 
   // Create a typed event emitter
-  const emitter = new EventEmitter<UserEvents>()
+  const emitter = new UserEvents()
 
   // TypeScript provides autocompletion and type checking for event names
   emitter.addListener('user:created', (event) => {
@@ -45,6 +48,11 @@ export async function typedEventsExample() {
     // event.payload is automatically typed as { from: string; to: string; timestamp: number }
     const date = new Date(event.payload.timestamp || 0)
     console.log(`🔄 Status changed from "${event.payload.from}" to "${event.payload.to}" at ${date.toLocaleTimeString()}`)
+  })
+
+  emitter.on('custom', (event) => {
+    // event.payload is automatically typed as any
+    console.log(`🔄 Custom event: ${event.payload}`)
   })
 
   // Emit events with full type safety
@@ -89,6 +97,20 @@ export async function typedEventsExample() {
     payload: {
       id: 'user-123',
       reason: 'Account closure requested by user'
+    }
+  })
+
+  emitter.emit('custom', {})
+
+  /// Multiple events
+  emitter.on(['user:created', 'user:updated'], (event) => {
+    console.log(`📡 Emitting multiple events: ${event.payload}`)
+  })
+
+  emitter.emit(['user:created', 'user:updated'], {
+    message: 'New user registered',
+    payload: {
+      id: 'user-123'
     }
   })
 

@@ -1,8 +1,21 @@
 import { GetTargetsResult, PathMatcher } from '@universal-packages/path-matcher'
 
-import { CancelablePromise, EEMap, EmittedEvent, EventEmitterOptions, EventIn, ListenerFn, TypedEmittedEvent, TypedEventIn, TypedListenerFn } from './EventEmitter.types'
+import {
+  CancelablePromise,
+  CombinedEventMap,
+  ConditionalEmittedEvent,
+  ConditionalEventIn,
+  DefaultEventMap,
+  EmittedEvent,
+  EventEmitterOptions,
+  EventIn,
+  EventNames,
+  EventPayload,
+  ListenerFn,
+  TypedListenerFn
+} from './EventEmitter.types'
 
-export class EventEmitter<EM extends EEMap = EEMap> {
+export class EventEmitter<TEventMap = DefaultEventMap> {
   public options: EventEmitterOptions
 
   private _pathMatcher: PathMatcher<ListenerFn>
@@ -45,18 +58,23 @@ export class EventEmitter<EM extends EEMap = EEMap> {
     })
   }
 
-  public emit<K extends keyof EM & string>(eventName: K, event?: TypedEventIn<EM[K]>): boolean
-  public emit(eventName: (keyof EM)[], event?: EventIn): boolean
-  public emit<K extends keyof EM>(eventName: K | keyof EM[], event?: EventIn | TypedEventIn<EM[K]>): boolean {
+  // Overload for single event name
+  public emit<TEventName extends EventNames<TEventMap>>(eventName: TEventName, event: ConditionalEventIn<EventPayload<TEventMap, TEventName>>): boolean
+  // Overload for array of event names - payload is always EventIn<any>
+  public emit<TEventName extends EventNames<TEventMap>>(eventName: TEventName[], event: EventIn<any>): boolean
+  public emit<TEventName extends EventNames<TEventMap>>(
+    eventName: TEventName | TEventName[],
+    event: ConditionalEventIn<EventPayload<TEventMap, TEventName>> | EventIn<any>
+  ): boolean {
     const results = this._pathMatcher.match(eventName as string)
 
     if (results.length === 0) return false
 
     for (const result of results) {
-      const emittedEvent: EmittedEvent = {
+      const emittedEvent: ConditionalEmittedEvent<EventPayload<TEventMap, TEventName>> = {
         event: result.matcher,
         ...event
-      }
+      } as ConditionalEmittedEvent<EventPayload<TEventMap, TEventName>>
 
       try {
         result.target(emittedEvent)
@@ -67,7 +85,7 @@ export class EventEmitter<EM extends EEMap = EEMap> {
           }
         }
 
-        const errorEmitted = this.emit('error' as any, {
+        const errorEmitted = this._emitInternal('error', {
           error: error as Error,
           ...emittedEvent
         })
@@ -81,20 +99,23 @@ export class EventEmitter<EM extends EEMap = EEMap> {
     return true
   }
 
-  public async emitAsync<K extends keyof EM>(eventName: K, event: TypedEventIn<EM[K]>): Promise<boolean>
-  public async emitAsync(eventName: (keyof EM)[], event?: EventIn): Promise<boolean>
-  public async emitAsync(eventName: string, event?: EventIn): Promise<boolean>
-  public async emitAsync(eventName: string[], event?: EventIn): Promise<boolean>
-  public async emitAsync<K extends keyof EM>(eventName: K | keyof EM[] | string | string[], event?: EventIn | TypedEventIn<EM[K]>): Promise<boolean> {
+  // Overload for single event name
+  public async emitAsync<TEventName extends EventNames<TEventMap>>(eventName: TEventName, event: ConditionalEventIn<EventPayload<TEventMap, TEventName>>): Promise<boolean>
+  // Overload for array of event names - payload is always EventIn<any>
+  public async emitAsync<TEventName extends EventNames<TEventMap>>(eventName: TEventName[], event: EventIn<any>): Promise<boolean>
+  public async emitAsync<TEventName extends EventNames<TEventMap>>(
+    eventName: TEventName | TEventName[],
+    event: ConditionalEventIn<EventPayload<TEventMap, TEventName>> | EventIn<any>
+  ): Promise<boolean> {
     const results = this._pathMatcher.match(eventName as string)
 
     if (results.length === 0) return false
 
     for (const result of results) {
-      const emittedEvent: EmittedEvent = {
+      const emittedEvent: ConditionalEmittedEvent<EventPayload<TEventMap, TEventName>> = {
         event: result.matcher,
         ...event
-      }
+      } as ConditionalEmittedEvent<EventPayload<TEventMap, TEventName>>
 
       try {
         await result.target(emittedEvent)
@@ -105,7 +126,7 @@ export class EventEmitter<EM extends EEMap = EEMap> {
           }
         }
 
-        const errorEmitted = await this.emitAsync('error' as any, {
+        const errorEmitted = await this._emitAsyncInternal('error', {
           error: error as Error,
           ...emittedEvent
         })
@@ -119,14 +140,19 @@ export class EventEmitter<EM extends EEMap = EEMap> {
     return true
   }
 
-  public addListener<K extends keyof EM>(eventName: K, listener: TypedListenerFn<EM[K]>): this
-  public addListener(eventName: (keyof EM)[], listener: ListenerFn): this
-  public addListener(eventName: string, listener: ListenerFn): this
-  public addListener(eventName: string[], listener: ListenerFn): this
-  public addListener<K extends keyof EM>(eventName: K | keyof EM[] | string | string[], listener: ListenerFn | TypedListenerFn<EM[K]>): this {
+  // Overload for single event name
+  public addListener<TEventName extends EventNames<TEventMap>>(eventName: TEventName, listener: TypedListenerFn<TEventMap, TEventName>): this
+  // Overload for array of event names - listener takes EmittedEvent<any>
+  public addListener<TEventName extends EventNames<TEventMap>>(eventName: TEventName[], listener: (event: EmittedEvent<any>) => any | Promise<any>): this
+  public addListener<TEventName extends EventNames<TEventMap>>(
+    eventName: TEventName | TEventName[],
+    listener: TypedListenerFn<TEventMap, TEventName> | ((event: EmittedEvent<any>) => any | Promise<any>)
+  ): this {
     if (Array.isArray(eventName)) {
       for (const name of eventName) {
-        this.addListener(name, listener as ListenerFn)
+        this._pathMatcher.addTarget(name as string, listener as ListenerFn)
+        this._emitNewListenerEvent(name as string, listener as ListenerFn)
+        this._checkMemoryLeak(name as string)
       }
       return this
     }
@@ -137,22 +163,30 @@ export class EventEmitter<EM extends EEMap = EEMap> {
     return this
   }
 
-  public on<K extends keyof EM>(eventName: K, listener: TypedListenerFn<EM[K]>): this
-  public on(eventName: (keyof EM)[], listener: ListenerFn): this
-  public on(eventName: string, listener: ListenerFn): this
-  public on(eventName: string[], listener: ListenerFn): this
-  public on<K extends keyof EM>(eventName: K | keyof EM[] | string | string[], listener: ListenerFn | TypedListenerFn<EM[K]>): this {
-    return this.addListener(eventName as string, listener as ListenerFn)
+  // Overload for single event name
+  public on<TEventName extends EventNames<TEventMap>>(eventName: TEventName, listener: TypedListenerFn<TEventMap, TEventName>): this
+  // Overload for array of event names - listener takes EmittedEvent<any>
+  public on<TEventName extends EventNames<TEventMap>>(eventName: TEventName[], listener: (event: EmittedEvent<any>) => any | Promise<any>): this
+  public on<TEventName extends EventNames<TEventMap>>(
+    eventName: TEventName | TEventName[],
+    listener: TypedListenerFn<TEventMap, TEventName> | ((event: EmittedEvent<any>) => any | Promise<any>)
+  ): this {
+    return this.addListener(eventName as any, listener as any)
   }
 
-  public prependListener<K extends keyof EM>(eventName: K, listener: TypedListenerFn<EM[K]>): this
-  public prependListener(eventName: (keyof EM)[], listener: ListenerFn): this
-  public prependListener(eventName: string, listener: ListenerFn): this
-  public prependListener(eventName: string[], listener: ListenerFn): this
-  public prependListener<K extends keyof EM>(eventName: K | keyof EM[] | string | string[], listener: ListenerFn | TypedListenerFn<EM[K]>): this {
+  // Overload for single event name
+  public prependListener<TEventName extends EventNames<TEventMap>>(eventName: TEventName, listener: TypedListenerFn<TEventMap, TEventName>): this
+  // Overload for array of event names - listener takes EmittedEvent<any>
+  public prependListener<TEventName extends EventNames<TEventMap>>(eventName: TEventName[], listener: (event: EmittedEvent<any>) => any | Promise<any>): this
+  public prependListener<TEventName extends EventNames<TEventMap>>(
+    eventName: TEventName | TEventName[],
+    listener: TypedListenerFn<TEventMap, TEventName> | ((event: EmittedEvent<any>) => any | Promise<any>)
+  ): this {
     if (Array.isArray(eventName)) {
       for (const name of eventName) {
-        this.prependListener(name, listener as ListenerFn)
+        this._pathMatcher.prependTarget(name as string, listener as ListenerFn)
+        this._emitNewListenerEvent(name as string, listener as ListenerFn)
+        this._checkMemoryLeak(name as string)
       }
       return this
     }
@@ -163,14 +197,19 @@ export class EventEmitter<EM extends EEMap = EEMap> {
     return this
   }
 
-  public once<K extends keyof EM>(eventName: K, listener: TypedListenerFn<EM[K]>): this
-  public once(eventName: (keyof EM)[], listener: ListenerFn): this
-  public once(eventName: string, listener: ListenerFn): this
-  public once(eventName: string[], listener: ListenerFn): this
-  public once<K extends keyof EM>(eventName: K | keyof EM[] | string | string[], listener: ListenerFn | TypedListenerFn<EM[K]>): this {
+  // Overload for single event name
+  public once<TEventName extends EventNames<TEventMap>>(eventName: TEventName, listener: TypedListenerFn<TEventMap, TEventName>): this
+  // Overload for array of event names - listener takes EmittedEvent<any>
+  public once<TEventName extends EventNames<TEventMap>>(eventName: TEventName[], listener: (event: EmittedEvent<any>) => any | Promise<any>): this
+  public once<TEventName extends EventNames<TEventMap>>(
+    eventName: TEventName | TEventName[],
+    listener: TypedListenerFn<TEventMap, TEventName> | ((event: EmittedEvent<any>) => any | Promise<any>)
+  ): this {
     if (Array.isArray(eventName)) {
       for (const name of eventName) {
-        this.once(name, listener as ListenerFn)
+        this._pathMatcher.addTargetOnce(name as string, listener as ListenerFn)
+        this._emitNewListenerEvent(name as string, listener as ListenerFn)
+        this._checkMemoryLeak(name as string)
       }
       return this
     }
@@ -181,14 +220,19 @@ export class EventEmitter<EM extends EEMap = EEMap> {
     return this
   }
 
-  public prependOnceListener<K extends keyof EM>(eventName: K, listener: TypedListenerFn<EM[K]>): this
-  public prependOnceListener(eventName: (keyof EM)[], listener: ListenerFn): this
-  public prependOnceListener(eventName: string, listener: ListenerFn): this
-  public prependOnceListener(eventName: string[], listener: ListenerFn): this
-  public prependOnceListener<K extends keyof EM>(eventName: K | keyof EM[] | string | string[], listener: ListenerFn | TypedListenerFn<EM[K]>): this {
+  // Overload for single event name
+  public prependOnceListener<TEventName extends EventNames<TEventMap>>(eventName: TEventName, listener: TypedListenerFn<TEventMap, TEventName>): this
+  // Overload for array of event names - listener takes EmittedEvent<any>
+  public prependOnceListener<TEventName extends EventNames<TEventMap>>(eventName: TEventName[], listener: (event: EmittedEvent<any>) => any | Promise<any>): this
+  public prependOnceListener<TEventName extends EventNames<TEventMap>>(
+    eventName: TEventName | TEventName[],
+    listener: TypedListenerFn<TEventMap, TEventName> | ((event: EmittedEvent<any>) => any | Promise<any>)
+  ): this {
     if (Array.isArray(eventName)) {
       for (const name of eventName) {
-        this.prependOnceListener(name, listener as ListenerFn)
+        this._pathMatcher.prependTargetOnce(name as string, listener as ListenerFn)
+        this._emitNewListenerEvent(name as string, listener as ListenerFn)
+        this._checkMemoryLeak(name as string)
       }
       return this
     }
@@ -199,11 +243,14 @@ export class EventEmitter<EM extends EEMap = EEMap> {
     return this
   }
 
-  public removeListener<K extends keyof EM>(eventName: K, listener: TypedListenerFn<EM[K]>): this
-  public removeListener(eventName: (keyof EM)[], listener: ListenerFn): this
-  public removeListener(eventName: string, listener: ListenerFn): this
-  public removeListener(eventName: string[], listener: ListenerFn): this
-  public removeListener<K extends keyof EM>(eventName: K | keyof EM[] | string | string[], listener: ListenerFn | TypedListenerFn<EM[K]>): this {
+  // Overload for single event name
+  public removeListener<TEventName extends EventNames<TEventMap>>(eventName: TEventName, listener: TypedListenerFn<TEventMap, TEventName>): this
+  // Overload for array of event names - listener takes EmittedEvent<any>
+  public removeListener<TEventName extends EventNames<TEventMap>>(eventName: TEventName[], listener: (event: EmittedEvent<any>) => any | Promise<any>): this
+  public removeListener<TEventName extends EventNames<TEventMap>>(
+    eventName: TEventName | TEventName[],
+    listener: TypedListenerFn<TEventMap, TEventName> | ((event: EmittedEvent<any>) => any | Promise<any>)
+  ): this {
     this._pathMatcher.removeTarget(eventName as string, listener as ListenerFn)
     if (Array.isArray(eventName)) {
       for (const name of eventName) {
@@ -216,19 +263,18 @@ export class EventEmitter<EM extends EEMap = EEMap> {
     return this
   }
 
-  public off<K extends keyof EM>(eventName: K, listener: TypedListenerFn<EM[K]>): this
-  public off(eventName: (keyof EM)[], listener: ListenerFn): this
-  public off(eventName: string, listener: ListenerFn): this
-  public off(eventName: string[], listener: ListenerFn): this
-  public off<K extends keyof EM>(eventName: K | keyof EM[] | string | string[], listener: ListenerFn | TypedListenerFn<EM[K]>): this {
-    return this.removeListener(eventName as string, listener as ListenerFn)
+  // Overload for single event name
+  public off<TEventName extends EventNames<TEventMap>>(eventName: TEventName, listener: TypedListenerFn<TEventMap, TEventName>): this
+  // Overload for array of event names - listener takes EmittedEvent<any>
+  public off<TEventName extends EventNames<TEventMap>>(eventName: TEventName[], listener: (event: EmittedEvent<any>) => any | Promise<any>): this
+  public off<TEventName extends EventNames<TEventMap>>(
+    eventName: TEventName | TEventName[],
+    listener: TypedListenerFn<TEventMap, TEventName> | ((event: EmittedEvent<any>) => any | Promise<any>)
+  ): this {
+    return this.removeListener(eventName as any, listener as any)
   }
 
-  public removeAllListeners<K extends keyof EM>(eventName: K): this
-  public removeAllListeners(eventName: (keyof EM)[]): this
-  public removeAllListeners(eventName: string): this
-  public removeAllListeners(eventName: string[]): this
-  public removeAllListeners<K extends keyof EM>(eventName: K | keyof EM[] | string | string[]): this {
+  public removeAllListeners<TEventName extends EventNames<TEventMap>>(eventName: TEventName | TEventName[]): this {
     let targetsRemoved: GetTargetsResult<ListenerFn>[] = []
 
     if (this.options.removeListenerEvent) {
@@ -242,27 +288,25 @@ export class EventEmitter<EM extends EEMap = EEMap> {
     return this
   }
 
-  public waitFor<K extends keyof EM>(eventName: K): CancelablePromise<TypedEmittedEvent<EM[K]>>
-  public waitFor(eventName: string): CancelablePromise<EmittedEvent>
-  public waitFor<K extends keyof EM>(eventName: K | string): CancelablePromise<TypedEmittedEvent<EM[K]>> {
+  public waitFor<TEventName extends EventNames<TEventMap>>(eventName: TEventName): CancelablePromise<EmittedEvent<EventPayload<TEventMap, TEventName>>> {
     let cancelled = false
-    let promiseResolve: (value: TypedEmittedEvent<EM[K]>) => void
+    let promiseResolve: (value: EmittedEvent<EventPayload<TEventMap, TEventName>>) => void
     let promiseReject: (reason?: any) => void
 
-    const listener = (event: TypedEmittedEvent<EM[K]>) => {
+    const listener = (event: EmittedEvent<EventPayload<TEventMap, TEventName>>) => {
       if (!cancelled) promiseResolve!(event)
     }
 
-    const promise = new Promise<TypedEmittedEvent<EM[K]>>((resolve, reject) => {
+    const promise = new Promise<EmittedEvent<EventPayload<TEventMap, TEventName>>>((resolve, reject) => {
       promiseReject = reject
       promiseResolve = resolve
 
-      this.once(eventName as string, listener as ListenerFn)
-    }) as CancelablePromise<TypedEmittedEvent<EM[K]>>
+      this.once(eventName, listener as TypedListenerFn<TEventMap, TEventName>)
+    }) as CancelablePromise<EmittedEvent<EventPayload<TEventMap, TEventName>>>
 
     promise.cancel = (reason: string) => {
       cancelled = true
-      this.removeListener(eventName as string, listener as ListenerFn)
+      this.removeListener(eventName, listener as TypedListenerFn<TEventMap, TEventName>)
       promiseReject(new Error(reason))
       return undefined
     }
@@ -270,10 +314,7 @@ export class EventEmitter<EM extends EEMap = EEMap> {
     return promise
   }
 
-  public hasListeners<K extends keyof EM>(eventName: K): boolean
-  public hasListeners(eventName: string): boolean
-  public hasListeners(eventName: string[]): boolean
-  public hasListeners<K extends keyof EM>(eventName: K | string | string[]): boolean {
+  public hasListeners<TEventName extends EventNames<TEventMap>>(eventName?: TEventName | TEventName[]): boolean {
     if (!eventName) return this._pathMatcher.targetsCount > 0
 
     if (Array.isArray(eventName)) {
@@ -283,17 +324,79 @@ export class EventEmitter<EM extends EEMap = EEMap> {
     }
   }
 
+  // Internal method for emitting internal events
+  private _emitInternal<TEventName extends EventNames<CombinedEventMap<TEventMap>>>(
+    eventName: TEventName,
+    event?: EventIn<EventPayload<CombinedEventMap<TEventMap>, TEventName>>
+  ): boolean {
+    const results = this._pathMatcher.match(eventName as string)
+
+    if (results.length === 0) return false
+
+    for (const result of results) {
+      const emittedEvent: EmittedEvent<EventPayload<CombinedEventMap<TEventMap>, TEventName>> = {
+        event: result.matcher,
+        ...event
+      }
+
+      try {
+        result.target(emittedEvent)
+      } catch (error) {
+        // For internal events, we don't want to recurse into error handling
+        if (!this.options.ignoreErrors) {
+          throw error
+        }
+      }
+    }
+
+    return true
+  }
+
+  // Internal method for emitting internal events async
+  private async _emitAsyncInternal<TEventName extends EventNames<CombinedEventMap<TEventMap>>>(
+    eventName: TEventName,
+    event?: EventIn<EventPayload<CombinedEventMap<TEventMap>, TEventName>>
+  ): Promise<boolean> {
+    const results = this._pathMatcher.match(eventName as string)
+
+    if (results.length === 0) return false
+
+    for (const result of results) {
+      const emittedEvent: EmittedEvent<EventPayload<CombinedEventMap<TEventMap>, TEventName>> = {
+        event: result.matcher,
+        ...event
+      }
+
+      try {
+        await result.target(emittedEvent)
+      } catch (error) {
+        // For internal events, we don't want to recurse into error handling
+        if (!this.options.ignoreErrors) {
+          throw error
+        }
+      }
+    }
+
+    return true
+  }
+
   private _emitRemoveListenerEvents(targetsRemoved: GetTargetsResult<ListenerFn>[]): void {
     if (this.options.removeListenerEvent) {
       for (const target of targetsRemoved) {
-        this.emit('emitter-remove-listener', { message: `Listener removed from event "${target.matcher}"`, payload: { matcher: target.matcher, target: target.target } })
+        this._emitInternal('emitter-remove-listener', {
+          message: `Listener removed from event "${target.matcher}"`,
+          payload: { matcher: target.matcher, target: target.target } as any
+        })
       }
     }
   }
 
   private _emitNewListenerEvent(eventName: string, listener: ListenerFn): void {
     if (this.options.newListenerEvent) {
-      this.emit('emitter-new-listener', { message: `New listener added to event "${eventName}"`, payload: { eventName, listener } })
+      this._emitInternal('emitter-new-listener', {
+        message: `New listener added to event "${eventName}"`,
+        payload: { eventName, listener } as any
+      })
     }
   }
 
@@ -303,7 +406,10 @@ export class EventEmitter<EM extends EEMap = EEMap> {
 
       if (listenerCount > this.maxListeners) {
         const message = `Possible EventEmitter memory leak detected. ${listenerCount} listeners added to event "${eventName}". Use emitter.maxListeners to increase limit.`
-        this.emit('emitter-memory-leak', { message, payload: { eventName, listenerCount, maxListeners: this.maxListeners } })
+        this._emitInternal('emitter-memory-leak', {
+          message,
+          payload: { eventName, listenerCount, maxListeners: this.maxListeners } as any
+        })
         console.warn(message)
       }
     }

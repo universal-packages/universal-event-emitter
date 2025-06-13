@@ -362,7 +362,7 @@ const emitter = new EventEmitter<MyEvents>()
 // TypeScript provides autocompletion for event names
 emitter.on('user:created', (event) => {
   // event.payload is typed as { id: string; name: string }
-  console.log(`User created: ${event.payload?.id}, ${event.payload?.name}`)
+  console.log(`User created: ${event.payload.id}, ${event.payload.name}`)
 })
 
 // Emit with type checking
@@ -375,6 +375,7 @@ emitter.emit('user:created', {
 
 // TypeScript will catch type errors:
 // emitter.emit('user:created', { payload: { id: 123 } }) // Error: Type 'number' is not assignable to type 'string'
+// emitter.emit('user:created', { payload: {}) // Error: Type '{}' is not assignable to type '{ id: string; name: string; }'
 ```
 
 ### Mixed Typed and Dynamic Events
@@ -385,7 +386,7 @@ You can use both typed and dynamic events in the same emitter:
 // Use your typed events with autocompletion
 emitter.on('user:created', (event) => {
   // Fully typed payload
-  const id: string = event.payload!.id
+  const id: string = event.payload.id
 })
 
 // Use dynamic events when needed
@@ -397,29 +398,6 @@ emitter.on('custom:event', (event: EmittedEvent<{ custom: boolean }>) => {
 // Use wildcards
 emitter.onAny((eventName, event) => {
   console.log(`Event fired: ${eventName}`)
-})
-```
-
-### Extending with Type Safety
-
-```ts
-// Create a custom typed EventEmitter
-class UserEvents extends EventEmitter<{
-  created: { id: string }
-  updated: { id: string; changes: object }
-  deleted: { id: string }
-}> {
-  createUser(name: string): string {
-    const id = Math.random().toString(36).substring(2)
-    this.emit('created', { payload: { id } })
-    return id
-  }
-}
-
-const users = new UserEvents()
-users.on('created', (event) => {
-  // Fully typed payload
-  console.log(`User created with ID: ${event.payload!.id}`)
 })
 ```
 
@@ -437,3 +415,7 @@ The development of this library happens in the open on GitHub, and we are gratef
 ### License
 
 [MIT licensed](./LICENSE).
+
+```
+
+```
