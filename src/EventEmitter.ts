@@ -72,14 +72,14 @@ export class EventEmitter<TEventMap = DefaultEventMap> {
 
     for (const result of results) {
       const emittedEvent: ConditionalEmittedEvent<EventPayload<TEventMap, TEventName>> = {
-        event: result.matcher,
+        event: result.matchedPath,
         ...event
       } as ConditionalEmittedEvent<EventPayload<TEventMap, TEventName>>
 
       try {
         result.target(emittedEvent)
       } catch (error) {
-        if (result.matcher === 'error') {
+        if (result.matchedPath === 'error') {
           if (!this.options.ignoreErrors) {
             throw error
           }
@@ -113,14 +113,14 @@ export class EventEmitter<TEventMap = DefaultEventMap> {
 
     for (const result of results) {
       const emittedEvent: ConditionalEmittedEvent<EventPayload<TEventMap, TEventName>> = {
-        event: result.matcher,
+        event: result.matchedPath,
         ...event
       } as ConditionalEmittedEvent<EventPayload<TEventMap, TEventName>>
 
       try {
         await result.target(emittedEvent)
       } catch (error) {
-        if (result.matcher === 'error') {
+        if (result.matchedPath === 'error') {
           if (!this.options.ignoreErrors) {
             throw error
           }
@@ -335,7 +335,7 @@ export class EventEmitter<TEventMap = DefaultEventMap> {
 
     for (const result of results) {
       const emittedEvent: EmittedEvent<EventPayload<CombinedEventMap<TEventMap>, TEventName>> = {
-        event: result.matcher,
+        event: result.matchedPath,
         ...event
       }
 
@@ -363,7 +363,7 @@ export class EventEmitter<TEventMap = DefaultEventMap> {
 
     for (const result of results) {
       const emittedEvent: EmittedEvent<EventPayload<CombinedEventMap<TEventMap>, TEventName>> = {
-        event: result.matcher,
+        event: result.matchedPath,
         ...event
       }
 
