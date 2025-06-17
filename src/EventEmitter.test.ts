@@ -24,7 +24,7 @@ export async function eventEmitterTest() {
 
   await runTest('No listeners emit returns false', async () => {
     const emitter = new EventEmitter()
-    const result = emitter.emit('nonexistent')
+    const result = emitter.emit('nonexistent', {})
     assert(result === false, 'emit should return false when no listeners exist')
   })
 
@@ -37,9 +37,9 @@ export async function eventEmitterTest() {
       callCount++
     })
 
-    const result1 = emitter.emit('test1')
-    const result2 = emitter.emit('test2')
-    const result3 = emitter.emit('user:created')
+    const result1 = emitter.emit('test1', {})
+    const result2 = emitter.emit('test2', {})
+    const result3 = emitter.emit('user:created', {})
 
     assertEquals(callCount, 3, 'wildcard should match all events')
     assertEquals(result1, true, 'test1 should return true')
@@ -59,10 +59,10 @@ export async function eventEmitterTest() {
       adminCallCount++
     })
 
-    emitter.emit('user:created')
-    emitter.emit('user:updated')
-    emitter.emit('admin:login')
-    emitter.emit('other:event')
+    emitter.emit('user:created', {})
+    emitter.emit('user:updated', {})
+    emitter.emit('admin:login', {})
+    emitter.emit('other:event', {})
 
     assertEquals(userCallCount, 2, 'user:* should match user events')
     assertEquals(adminCallCount, 1, 'admin:* should match admin events')
@@ -77,9 +77,9 @@ export async function eventEmitterTest() {
       callCount++
     })
 
-    emitter.emit('event1')
-    emitter.emit('event2')
-    emitter.emit('event3')
+    emitter.emit('event1', {})
+    emitter.emit('event2', {})
+    emitter.emit('event3', {})
 
     assertEquals(callCount, 2, 'should listen to multiple events')
   })
@@ -130,11 +130,11 @@ export async function eventEmitterTest() {
     assertEquals(event3Count, 0, 'event3 should not be emitted')
 
     // Test emitting to array with no listeners
-    const noListenersResult = emitter.emit(['nonexistent1', 'nonexistent2'])
+    const noListenersResult = emitter.emit(['nonexistent1', 'nonexistent2'], {})
     assert(noListenersResult === false, 'emit with array should return false when no listeners exist')
 
     // Test emitting to array with partial listeners
-    const partialResult = emitter.emit(['event1', 'nonexistent'])
+    const partialResult = emitter.emit(['event1', 'nonexistent'], {})
     assert(partialResult === true, 'emit with array should return true when at least one listener exists')
     assertEquals(event1Count, 2, 'event1 should be emitted again')
   })
@@ -148,9 +148,9 @@ export async function eventEmitterTest() {
       callCount++
     })
 
-    emitter.emit('test')
-    emitter.emit('test')
-    emitter.emit('test')
+    emitter.emit('test', {})
+    emitter.emit('test', {})
+    emitter.emit('test', {})
 
     assertEquals(callCount, 1, 'once listener should be called only once')
   })
@@ -167,7 +167,7 @@ export async function eventEmitterTest() {
       callOrder.push('prepend')
     })
 
-    emitter.emit('test')
+    emitter.emit('test', {})
 
     assertEquals(callOrder[0], 'prepend', 'prepend listener should be called first')
     assertEquals(callOrder[1], 'normal', 'normal listener should be called second')
@@ -191,8 +191,8 @@ export async function eventEmitterTest() {
       prependCallCount++
     })
 
-    emitter.emit('test')
-    emitter.emit('test')
+    emitter.emit('test', {})
+    emitter.emit('test', {})
 
     assertEquals(prependCallCount, 1, 'prepend once should be called only once')
     assertEquals(callOrder[0], 'prepend-once', 'prepend once should be called first')
@@ -208,7 +208,7 @@ export async function eventEmitterTest() {
       resolved = true
     })
 
-    const result = await emitter.emitAsync('test')
+    const result = await emitter.emitAsync('test', {})
 
     assert((resolved as boolean) === true, 'async listener should complete')
     assert(result === true, 'emitAsync should return true')
@@ -227,11 +227,11 @@ export async function eventEmitterTest() {
       callCount++
     })
 
-    emitter.emit('test')
+    emitter.emit('test', {})
     assertEquals(callCount, 2, 'both listeners should be called initially')
 
     emitter.removeListener('test', listener)
-    emitter.emit('test')
+    emitter.emit('test', {})
     assertEquals(callCount, 3, 'only remaining listener should be called')
   })
 
@@ -247,7 +247,7 @@ export async function eventEmitterTest() {
     })
 
     emitter.removeAllListeners('test')
-    emitter.emit('test')
+    emitter.emit('test', {})
 
     assertEquals(callCount, 0, 'no listeners should be called after removeAll')
   })
@@ -264,8 +264,8 @@ export async function eventEmitterTest() {
     })
 
     emitter.removeAllListeners()
-    emitter.emit('test1')
-    emitter.emit('test2')
+    emitter.emit('test1', {})
+    emitter.emit('test2', {})
 
     assertEquals(callCount, 0, 'no listeners should remain')
   })
@@ -280,7 +280,7 @@ export async function eventEmitterTest() {
     }
     emitter.on('test', listener)
     emitter.off('test', listener)
-    emitter.emit('test')
+    emitter.emit('test', {})
 
     assertEquals(callCount, 0, 'off should remove listener')
   })
@@ -349,7 +349,7 @@ export async function eventEmitterTest() {
     let error: Error | undefined
 
     try {
-      emitter.emit('event')
+      emitter.emit('event', {})
     } catch (err: unknown) {
       error = err as Error
     }
@@ -368,7 +368,7 @@ export async function eventEmitterTest() {
       throw new Error('test error')
     })
 
-    emitter.emit('event')
+    emitter.emit('event', {})
   })
 
   await runTest('Error events with ignoreErrors=false but no error listener is in place', async () => {
@@ -381,7 +381,7 @@ export async function eventEmitterTest() {
     let error: Error | undefined
 
     try {
-      emitter.emit('event')
+      emitter.emit('event', {})
     } catch (err: unknown) {
       error = err as Error
     }
@@ -397,7 +397,7 @@ export async function eventEmitterTest() {
     })
 
     try {
-      emitter.emit('test')
+      emitter.emit('test', {})
       assert(false, 'should have thrown listener error')
     } catch (error: any) {
       assert(error.message === 'listener error', 'should throw listener error')
@@ -416,7 +416,7 @@ export async function eventEmitterTest() {
     })
 
     try {
-      emitter.emit('test')
+      emitter.emit('test', {})
       assert(false, 'should have thrown listener error')
     } catch (error: any) {
       assert(error.message === 'error handler error', 'should throw error handler error')
@@ -580,8 +580,8 @@ export async function eventEmitterTest() {
       callCount++
     })
 
-    emitter.emit('user:created')
-    emitter.emit('*')
+    emitter.emit('user:created', {})
+    emitter.emit('*', {})
 
     assertEquals(callCount, 1, 'only exact match should work when wildcard disabled')
   })
@@ -595,9 +595,9 @@ export async function eventEmitterTest() {
       callCount++
     })
 
-    emitter.emit('user:admin:created')
-    emitter.emit('user:guest:created')
-    emitter.emit('user:created')
+    emitter.emit('user:admin:created', {})
+    emitter.emit('user:guest:created', {})
+    emitter.emit('user:created', {})
 
     assertEquals(callCount, 2, 'should match complex patterns correctly')
   })
@@ -610,7 +610,7 @@ export async function eventEmitterTest() {
     emitter.on('', () => {
       callCount++
     })
-    emitter.emit('')
+    emitter.emit('', {})
 
     assertEquals(callCount, 1, 'empty event name should work')
   })
@@ -632,8 +632,8 @@ export async function eventEmitterTest() {
       callCount++
     })
 
-    await emitter.emitAsync('test')
-    await emitter.emitAsync('test')
+    await emitter.emitAsync('test', {})
+    await emitter.emitAsync('test', {})
 
     assertEquals(callCount, 1, 'once listener should only be called once in async')
   })
@@ -661,11 +661,11 @@ export async function eventEmitterTest() {
     })
 
     // Test single level wildcard matching with custom delimiter
-    emitter.emit('user.login')
-    emitter.emit('user.logout')
-    emitter.emit('admin.login')
-    emitter.emit('user.profile.created') // This should NOT match user.*
-    emitter.emit('other.created')
+    emitter.emit('user.login', {})
+    emitter.emit('user.logout', {})
+    emitter.emit('admin.login', {})
+    emitter.emit('user.profile.created', {}) // This should NOT match user.*
+    emitter.emit('other.created', {})
 
     assertEquals(userCount, 2, 'user.* should match user.login and user.logout')
     assertEquals(adminCount, 1, 'admin.* should match admin.login')
@@ -679,10 +679,10 @@ export async function eventEmitterTest() {
       recursiveCount++
     })
 
-    emitter2.emit('user.login')
-    emitter2.emit('user.profile.created')
-    emitter2.emit('user.settings.privacy.updated')
-    emitter2.emit('admin.login') // Should not match
+    emitter2.emit('user.login', {})
+    emitter2.emit('user.profile.created', {})
+    emitter2.emit('user.settings.privacy.updated', {})
+    emitter2.emit('admin.login', {}) // Should not match
 
     assertEquals(recursiveCount, 3, 'user.** should match all user events at any depth')
   })
@@ -711,13 +711,13 @@ export async function eventEmitterTest() {
       event2Count++
     })
 
-    const result = await emitter.emitAsync(['event1', 'event2'])
+    const result = await emitter.emitAsync(['event1', 'event2'], {})
     assertEquals(result, true, 'should return true when listeners exist')
     assertEquals(event1Count, 1, 'event1 should be emitted')
     assertEquals(event2Count, 1, 'event2 should be emitted')
 
     // Test with no listeners for one event
-    const result2 = await emitter.emitAsync(['event1', 'nonexistent'])
+    const result2 = await emitter.emitAsync(['event1', 'nonexistent'], {})
     assertEquals(result2, true, 'should return true if at least one event has listeners')
   })
 
@@ -729,13 +729,13 @@ export async function eventEmitterTest() {
     }
 
     emitter.on(['event1', 'event2'], listener)
-    emitter.emit('event1')
-    emitter.emit('event2')
+    emitter.emit('event1', {})
+    emitter.emit('event2', {})
     assertEquals(callCount, 2, 'both events should trigger listener')
 
     emitter.removeListener(['event1', 'event2'], listener)
-    emitter.emit('event1')
-    emitter.emit('event2')
+    emitter.emit('event1', {})
+    emitter.emit('event2', {})
     assertEquals(callCount, 2, 'listener should be removed from both events')
   })
 
@@ -755,9 +755,9 @@ export async function eventEmitterTest() {
     })
 
     emitter.removeAllListeners(['event1', 'event2'])
-    emitter.emit('event1')
-    emitter.emit('event2')
-    emitter.emit('event3') // This should still work
+    emitter.emit('event1', {})
+    emitter.emit('event2', {})
+    emitter.emit('event3', {}) // This should still work
 
     assertEquals(event1Count, 0, 'event1 listeners should be removed')
     assertEquals(event2Count, 0, 'event2 listeners should be removed')
@@ -789,9 +789,9 @@ export async function eventEmitterTest() {
     // Remove all user events from array
     emitter.removeAllListeners(['user:created', 'user:updated'])
 
-    emitter.emit('user:created')
-    emitter.emit('user:updated')
-    emitter.emit('admin:login')
+    emitter.emit('user:created', {})
+    emitter.emit('user:updated', {})
+    emitter.emit('admin:login', {})
 
     assertEquals(userCreatedCount, 0, 'user:created listeners should be removed')
     assertEquals(userUpdatedCount, 0, 'user:updated listeners should be removed')
@@ -816,11 +816,11 @@ export async function eventEmitterTest() {
 
   await runTest('emitAsync with no listeners returns false', async () => {
     const emitter = new EventEmitter()
-    const result = await emitter.emitAsync('nonexistent')
+    const result = await emitter.emitAsync('nonexistent', {})
     assertEquals(result, false, 'should return false when no listeners exist')
 
     // Test with array where none have listeners
-    const result2 = await emitter.emitAsync(['event1', 'event2'])
+    const result2 = await emitter.emitAsync(['event1', 'event2'], {})
     assertEquals(result2, false, 'should return false when no listeners exist for any event')
   })
 
@@ -835,7 +835,7 @@ export async function eventEmitterTest() {
     let error: Error | undefined
 
     try {
-      await emitter.emitAsync('event')
+      await emitter.emitAsync('event', {})
     } catch (err: unknown) {
       error = err as Error
     }
@@ -856,7 +856,7 @@ export async function eventEmitterTest() {
       throw new Error('test error')
     })
 
-    await emitter.emitAsync('event')
+    await emitter.emitAsync('event', {})
   })
 
   await runTest('Async error events with ignoreErrors=false but no error listener is in place', async () => {
@@ -870,7 +870,7 @@ export async function eventEmitterTest() {
     let error: Error | undefined
 
     try {
-      await emitter.emitAsync('event')
+      await emitter.emitAsync('event', {})
     } catch (err: unknown) {
       error = err as Error
     }
@@ -887,7 +887,7 @@ export async function eventEmitterTest() {
     })
 
     try {
-      await emitter.emitAsync('test')
+      await emitter.emitAsync('test', {})
       assert(false, 'should have thrown listener error')
     } catch (error: any) {
       assert(error.message === 'listener error', 'should throw listener error')
@@ -906,7 +906,7 @@ export async function eventEmitterTest() {
     })
 
     try {
-      await emitter.emitAsync('test')
+      await emitter.emitAsync('test', {})
       assert(false, 'should have thrown listener error')
     } catch (error: any) {
       assert(error.message === 'error handler error', 'should throw error handler error')
@@ -942,11 +942,11 @@ export async function eventEmitterTest() {
     })
 
     // Test single level matching with default delimiter
-    emitter.emit('user:login')
-    emitter.emit('user:logout')
-    emitter.emit('admin:created')
-    emitter.emit('user:profile:created') // Should not match user:* or *:created (wrong level), but should match user:** and **:created
-    emitter.emit('other:updated')
+    emitter.emit('user:login', {})
+    emitter.emit('user:logout', {})
+    emitter.emit('admin:created', {})
+    emitter.emit('user:profile:created', {}) // Should not match user:* or *:created (wrong level), but should match user:** and **:created
+    emitter.emit('other:updated', {})
 
     assertEquals(userCount, 2, 'user:* should match single level user events')
     assertEquals(allCreatedCount, 1, '*:created should only match admin:created (2 parts)')
@@ -967,12 +967,12 @@ export async function eventEmitterTest() {
     })
 
     // Test partial wildcards within segments
-    emitter.emit('user:normal:login') // Should match user:*:login
-    emitter.emit('user:admin:login') // Should match user:*:login
-    emitter.emit('admin:normal:login') // Should NOT match user:*:login
-    emitter.emit('admin:created') // Should match *:created
-    emitter.emit('user:created') // Should match *:created
-    emitter.emit('admin:updated') // Should NOT match *:created
+    emitter.emit('user:normal:login', {}) // Should match user:*:login
+    emitter.emit('user:admin:login', {}) // Should match user:*:login
+    emitter.emit('admin:normal:login', {}) // Should NOT match user:*:login
+    emitter.emit('admin:created', {}) // Should match *:created
+    emitter.emit('user:created', {}) // Should match *:created
+    emitter.emit('admin:updated', {}) // Should NOT match *:created
 
     assertEquals(userEventCount, 2, 'user:*:login should match user:normal:login and user:admin:login')
     assertEquals(createdEventCount, 2, '*:created should match admin:created and user:created')
@@ -991,11 +991,11 @@ export async function eventEmitterTest() {
     })
 
     // Test recursive matching
-    emitter.emit('user:login') // Should match both patterns
-    emitter.emit('admin:profile:login') // Should match **:login
-    emitter.emit('user:profile:settings:update') // Should match user:**
-    emitter.emit('user:logout') // Should match user:**
-    emitter.emit('other:event') // Should match neither
+    emitter.emit('user:login', {}) // Should match both patterns
+    emitter.emit('admin:profile:login', {}) // Should match **:login
+    emitter.emit('user:profile:settings:update', {}) // Should match user:**
+    emitter.emit('user:logout', {}) // Should match user:**
+    emitter.emit('other:event', {}) // Should match neither
 
     assertEquals(recursiveCount, 2, '**:login should match recursive patterns')
     assertEquals(specificCount, 3, 'user:** should match all user patterns')
@@ -1010,16 +1010,16 @@ export async function eventEmitterTest() {
     })
 
     // Test patterns with different number of parts (should not match)
-    emitter.emit('user') // Too few parts
-    emitter.emit('user:profile') // Too few parts
-    emitter.emit('user:profile:settings:extra') // Too many parts
-    emitter.emit('admin:profile:settings') // Wrong prefix
-    emitter.emit('user:settings:profile') // Wrong middle part
+    emitter.emit('user', {}) // Too few parts
+    emitter.emit('user:profile', {}) // Too few parts
+    emitter.emit('user:profile:settings:extra', {}) // Too many parts
+    emitter.emit('admin:profile:settings', {}) // Wrong prefix
+    emitter.emit('user:settings:profile', {}) // Wrong middle part
 
     assertEquals(matchCount, 0, 'none of these patterns should match user:profile:*')
 
     // Now test one that should match
-    emitter.emit('user:profile:settings')
+    emitter.emit('user:profile:settings', {})
     assertEquals(matchCount, 1, 'user:profile:settings should match')
   })
 

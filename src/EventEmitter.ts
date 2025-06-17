@@ -274,7 +274,7 @@ export class EventEmitter<TEventMap = DefaultEventMap> {
     return this.removeListener(eventName as any, listener as any)
   }
 
-  public removeAllListeners<TEventName extends EventNames<TEventMap>>(eventName: TEventName | TEventName[]): this {
+  public removeAllListeners<TEventName extends EventNames<TEventMap>>(eventName?: TEventName | TEventName[]): this {
     let targetsRemoved: GetTargetsResult<ListenerFn>[] = []
 
     if (this.options.removeListenerEvent) {
